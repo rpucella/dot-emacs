@@ -1,17 +1,23 @@
 (require 'package)
 (add-to-list 'package-archives
              '("melpa-stable" . "https://stable.melpa.org/packages/") t)
-
-;; Added by Package.el.  This must come before configurations of
-;; installed packages.  Don't delete this line.  If you don't want it,
-;; just comment it out by adding a semicolon to the start of the line.
-;; You may delete these explanatory comments.
+;; Added by Package.el. Must be before any package configuration.
 (package-initialize)
 
 (setq inhibit-startup-screen t)
 
-; get rid of menu bar in text mode
-(menu-bar-mode 0)
+(when (and (eq system-type 'darwin) window-system)
+  ;; Mac OS X GUI
+  (setq default-frame-alist '((height . 48) (width . 160))))
+
+(when (not window-system)
+  ;; Text mode
+  ;; get rid of menu bar in text mode
+  (menu-bar-mode 0))
+
+;; machine-specific initial window size?
+;;(when (string= (getenv "HOSTNAME") "Maximillian") ...)
+;; cf https://stackoverflow.com/questions/16481984/get-width-of-current-monitor-in-emacs-lisp/16484107
 
 ; remove tabs indentation
 (setq-default indent-tabs-mode nil)
@@ -23,6 +29,7 @@
 (setq explicit-bash-args '("--noediting" "-i" "-l"))
 
 (put 'upcase-region 'disabled nil)
+
 
 ; ocaml mode for emacs
 
@@ -39,3 +46,12 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  )
+
+(defun rp-fs ()
+  "Custom - toggle full screen"
+  (interactive)
+  (toggle-frame-fullscreen))
+
+(defun rp-edit-init ()
+  (interactive)
+  (find-file (concat (getenv "HOME") "/git/dot-emacs/init.el")))
