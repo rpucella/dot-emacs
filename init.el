@@ -130,7 +130,10 @@
             kill-buffer-query-functions))
 
 ;; enable line numbers
-(global-linum-mode 1)
+(require 'display-line-numbers)
+;; need to put in "don't put lns on some modes" restriction here
+;; cf: https://www.emacswiki.org/emacs/LineNumbers
+(global-display-line-numbers-mode)
 
 ;; indent automatically
 (define-key global-map (kbd "RET") 'newline-and-indent)
