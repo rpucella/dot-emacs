@@ -27,7 +27,13 @@ https://github.com/jaypei/emacs-neotree
 
 https://github.com/lewang/ws-butler/blob/master/ws-butler.el
 
+https://orgmode.org/
+
 https://github.com/joaotavora/eglot/   and also   https://langserver.org/
+
+https://arjanvandergaag.nl/blog/using-emacs-as-a-database-client.html
+
+https://www.gnu.org/software/emacs/manual/html_node/emacs/Directory-Variables.html
 
 ## To do
 
