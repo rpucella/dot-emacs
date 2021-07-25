@@ -12,8 +12,11 @@
 ;; Added by Package.el. Must be before any package configuration.
 (package-initialize)
 
-(load-library (concat (getenv "HOME")"/.emacs.d/functions.el"))
+(load-library (concat (getenv "HOME") "/.emacs.d/functions.el"))
 
+(when (eq system-type 'windows-nt)
+  ;; load Forrester-specific functionality when on windows
+  (load-library (concat (getenv "HOME") "/.emacs.d/forrester.el")))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -42,12 +45,9 @@
 ;;  Screen setup
 ;;
 
-(setq rp-default-embiggen-size 12)
-
 (when window-system
   ;; might depend on the machine
-  (setq default-frame-alist '((height . 48) (width . 160)))
-  (setq rp-default-embiggen-size 18)
+  (setq default-frame-alist '((height . 48) (width . 160) (left . 24) (top 24)))
   (set-frame-font "Hack-12" nil t)
   (load-theme 'green-phosphor t)
   (custom-theme-set-faces 'green-phosphor
@@ -57,7 +57,7 @@
   ;;(load-theme 'green-is-the-new-black t)
   (rp-embiggen rp-default-embiggen-size)
   ;; full screen
-  (global-set-key (kbd "<s-return>") 'rp-fs)
+  (global-set-key (kbd "<s-return>") 'rp-full)
   ;; stop blinking
   (blink-cursor-mode 0)
   )
@@ -68,11 +68,10 @@
   (menu-bar-mode 0)
   )
 
-(when (eq system-type 'windows-nt)
+(when (eq window-system 'w32)
   ;; start up in a reasonable directory
-  (cd (concat "C:/Users/" (getenv "USERNAME")))
+  (cd (getenv "HOME"))
   )
-
 
 ;; machine-specific initial window size?
 ;;(when (string= (getenv "HOSTNAME") "Maximillian") ...)
@@ -137,7 +136,7 @@
 
 ;; ocaml mode for emacs
 
-(ignore-error
+(ignore-errors
     (load "/Users/riccardo/.opam/system/share/emacs/site-lisp/tuareg-site-file")
   )
 
