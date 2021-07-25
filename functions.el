@@ -1,10 +1,4 @@
 
-(defvar rp-default-embiggen-size
-  (cond
-   ((eq window-system 'w32) 16)
-   ((eq window-system 'ns) 18)
-   ((t 12))))
-
 (defun rp-full ()
   "Toggle full/maximal screen"
   (interactive)
