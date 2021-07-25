@@ -152,6 +152,19 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
+;; new key bindings
+;;
+;; C-c <letter> is reserved, so use that
+
+;; (defalias 'ctl-t-keymap (make-sparse-keymap))
+;; (defvar ctl-t-map (symbol-function 'ctl-t-keymap)
+;;   "Global keymap for characters following C-o.")
+;; (define-key global-map "\C-o" 'ctl-t-keymap)
+
+(global-set-key (kbd "C-c x") 'execute-extended-command)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
 ;; not processed yet
 
 
