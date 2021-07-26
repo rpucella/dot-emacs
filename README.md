@@ -31,9 +31,21 @@ https://orgmode.org/
 
 https://github.com/joaotavora/eglot/   and also   https://langserver.org/
 
+https://www.gnu.org/software/emacs/manual/html_node/emacs/Directory-Variables.html
+
+### Databases
+
 https://arjanvandergaag.nl/blog/using-emacs-as-a-database-client.html
 
-https://www.gnu.org/software/emacs/manual/html_node/emacs/Directory-Variables.html
+https://emacsredux.com/blog/2013/06/13/using-emacs-as-a-database-client/
+
+https://truongtx.me/2014/08/23/setup-emacs-as-an-sql-database-client
+
+https://www.emacswiki.org/emacs/SqlMode
+
+https://github.com/kostafey/ejc-sql
+
+https://bitbucket.org/stdunbar/jisql/src/master/
 
 ## To do
 
