@@ -31,7 +31,7 @@
 (defvar rp-default-embiggen-size
   (cond
    (rp-is-maximillian 14)
-   (rp-is-forrester 16)
+   (rp-is-forrester 14)
    (rp-is-macos 18)
    ((t 12))))
 
@@ -53,7 +53,8 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   '(ws-butler green-phosphor-theme green-is-the-new-black-theme dracula-theme go-mode web-mode markdown-mode)))
+   (quote
+    (restclient ws-butler green-phosphor-theme green-is-the-new-black-theme dracula-theme go-mode web-mode markdown-mode))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -70,7 +71,7 @@
 
 (defun --setup-windows ()
   ;; might depend on the machine
-  (setq default-frame-alist '((height . 48) (width . 160) (left . 24) (top . 24)))
+  (setq default-frame-alist '((height . 40) (width . 120) (left . 24) (top . 24)))
   (set-frame-font "Hack-12" nil t)
   (load-theme 'green-phosphor t)
   (custom-theme-set-faces 'green-phosphor
@@ -98,11 +99,6 @@
   ;; start up in a reasonable directory
   (cd (getenv "HOME"))
   )
-
-(when rp-is-maximillian
-  (setq default-frame-alist '((height . 40) (width . 120) (left . 24) (top . 24)))
-  )
-
 
 (defun -flash-mode-line ()
   (interactive)
