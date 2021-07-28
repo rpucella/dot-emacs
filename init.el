@@ -31,7 +31,7 @@
 (defvar rp-default-embiggen-size
   (cond
    (rp-is-maximillian 14)
-   (rp-is-forrester 16)
+   (rp-is-forrester 14)
    (rp-is-macos 18)
    ((t 12))))
 
@@ -53,7 +53,8 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   '(ws-butler green-phosphor-theme green-is-the-new-black-theme dracula-theme go-mode web-mode markdown-mode)))
+   (quote
+    (restclient ws-butler green-phosphor-theme green-is-the-new-black-theme dracula-theme go-mode web-mode markdown-mode))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -70,7 +71,7 @@
 
 (defun --setup-windows ()
   ;; might depend on the machine
-  (setq default-frame-alist '((height . 48) (width . 160) (left . 24) (top . 24)))
+  (setq default-frame-alist '((height . 40) (width . 120) (left . 24) (top . 24)))
   (set-frame-font "Hack-12" nil t)
   (load-theme 'green-phosphor t)
   (custom-theme-set-faces 'green-phosphor
@@ -99,11 +100,6 @@
   (cd (getenv "HOME"))
   )
 
-(when rp-is-maximillian
-  (setq default-frame-alist '((height . 40) (width . 120) (left . 24) (top . 24)))
-  )
-
-
 (defun -flash-mode-line ()
   (interactive)
   (invert-face 'mode-line)
@@ -130,7 +126,10 @@
             kill-buffer-query-functions))
 
 ;; enable line numbers
-(global-linum-mode 1)
+(require 'display-line-numbers)
+;; need to put in "don't put lns on some modes" restriction here
+;; cf: https://www.emacswiki.org/emacs/LineNumbers
+(global-display-line-numbers-mode)
 
 ;; indent automatically
 (define-key global-map (kbd "RET") 'newline-and-indent)
@@ -149,6 +148,19 @@
 ;; disable warning about upcase-region
 (put 'upcase-region 'disabled nil)
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; new key bindings
+;;
+;; C-c <letter> is reserved, so use that
+
+;; (defalias 'ctl-t-keymap (make-sparse-keymap))
+;; (defvar ctl-t-map (symbol-function 'ctl-t-keymap)
+;;   "Global keymap for characters following C-o.")
+;; (define-key global-map "\C-o" 'ctl-t-keymap)
+
+(global-set-key (kbd "C-c x") 'execute-extended-command)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;

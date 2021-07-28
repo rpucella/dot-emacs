@@ -47,6 +47,8 @@ https://github.com/kostafey/ejc-sql
 
 https://bitbucket.org/stdunbar/jisql/src/master/
 
+_A nice thing I use in combination with restclient.el is json-mode-beautify(from json-mode package) this way you can format json payload easily. I have it binded to C-c C-f for more quickly access._
+
 ## To do
 
 - remove line numbers for comint modes (alternatively, whitelist modes with line numbers explicitly)
