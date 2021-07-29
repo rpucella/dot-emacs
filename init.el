@@ -36,6 +36,7 @@
    ((t 12))))
 
 (load-library (concat (getenv "HOME") "/.emacs.d/functions.el"))
+(load-library (concat (getenv "HOME") "/.emacs.d/notes.el"))
 
 (when rp-is-forrester
   ;; load Forrester-specific functionality when on windows
