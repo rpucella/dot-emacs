@@ -4,6 +4,7 @@
 ;;
 ;; Create own major mode.
 ;; Command to delete notes.
+;; Uniformize path manipulation in unix/windows.
 ;;
 
 (defvar rp-notes-folder (concat (getenv "HOME") "/.notes"))
@@ -131,7 +132,7 @@
         (newline)
         (dolist (nt sorted-notes)
           (let* ((snt (number-to-string nt))
-                 (line (--read-first-lines (concat rp-notes-folder "/note-" snt ".txt") 1)))
-            (insert (concat "* " snt (make-string (- width (length snt)) ?\s) (car line)))
+                 (line (string-trim (car (--read-first-lines (concat rp-notes-folder "/note-" snt ".txt") 1)))))
+            (insert (concat "* " snt (make-string (- width (length snt)) ?\s) line))
             (newline))))
       (beginning-of-buffer)))

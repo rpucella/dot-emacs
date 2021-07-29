@@ -161,7 +161,15 @@
 ;;   "Global keymap for characters following C-o.")
 ;; (define-key global-map "\C-o" 'ctl-t-keymap)
 
+(defalias 'custom-notes-keymap (make-sparse-keymap))
+(defvar custom-notes-map (symbol-function 'custom-notes-keymap))
+
 (global-set-key (kbd "C-c x") 'execute-extended-command)
+(global-set-key (kbd "C-c f") 'rp-full)
+(global-set-key (kbd "C-c n") 'custom-notes-keymap)
+
+(define-key custom-notes-map (kbd "l") 'rp-notes)
+(define-key custom-notes-map (kbd "n") 'rp-new-note)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
