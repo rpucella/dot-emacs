@@ -1,3 +1,5 @@
+(require 'subr-x)
+
 (defvar --notes-folder (concat (getenv "HOME") "/.notes"))
 
 ;; TODO:
@@ -28,7 +30,9 @@
     ;; also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
     (if (null buff)
         (progn (switch-to-buffer (find-file-noselect new-file))
-               (insert "# Note " (number-to-string new-note) "\n\n"))
+               (insert "# Note " (number-to-string new-note))
+               (newline)
+               (newline))
       (switch-to-buffer buff))))
 
 (defun --read-first-lines (file n)
@@ -106,9 +110,9 @@
         (let ((curr notes))
           (while (not (null curr))
             (let* ((snt (number-to-string (car curr)))
-                   (line (--read-first-lines (concat (getenv "HOME") "/.notes/note-" snt ".txt") 1)))
-              (insert (concat "* " snt "    " (car line)))
+                   (line (string-trim (car (--read-first-lines (concat (getenv "HOME") "/.notes/note-" snt ".txt") 1)))))
+              (insert (concat "* " snt "    " line))
               (when (not (null (cdr curr)))
-                (insert "\n"))
+                (newline))
               (setq curr (cdr curr))))))
       (beginning-of-buffer)))
