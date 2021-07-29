@@ -1,30 +1,30 @@
 (require 'subr-x)
 
-(defvar --notes-folder (concat (getenv "HOME") "/.notes"))
-
 ;; TODO:
 ;;
-;; Command to delete notes
-;; Add more text to notes buffer, but only recognize notes when line starts with '* ' <- dired style
+;; Create own major mode.
+;; Command to delete notes.
 ;;
+
+(defvar rp-notes-folder (concat (getenv "HOME") "/.notes"))
 
 (defun --create-notes-folder-if-needed ()
   "Create notes folder if it doesn't exist."
-  (unless (file-exists-p --notes-folder)
-    (make-directory --notes-folder)))
+  (unless (file-exists-p rp-notes-folder)
+    (make-directory rp-notes-folder)))
 
 (defun rp-new-note ()
   "Create a 'permanent' note in $HOME/.notes"
   (interactive)
   (--create-notes-folder-if-needed)
-  (let* ((existing-notes (directory-files --notes-folder nil (rx "note-" (zero-or-more digit) ".txt")))
+  (let* ((existing-notes (directory-files rp-notes-folder nil (rx "note-" (zero-or-more digit) ".txt")))
          (note-regexp "note-\\([0-9]+\\).txt" )
          (notes (mapcar (lambda (fname) (save-match-data
                                           (and (string-match note-regexp fname)
                                                (string-to-number (match-string 1 fname)))))
                         existing-notes))
          (new-note (+ (seq-reduce 'max notes 0) 1))
-         (new-file (concat --notes-folder "/note-" (number-to-string new-note) ".txt"))
+         (new-file (concat rp-notes-folder "/note-" (number-to-string new-note) ".txt"))
          (buff (get-file-buffer new-file)))
     ;; TODO: if the file/buffer already exists, don't insert the # Note thing...
     ;; also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
@@ -50,14 +50,16 @@
   "Load the note pointed to by the point in a *notes* buffer"
   ;; which line are we on?
   (interactive)
-  (let* ((line (thing-at-point 'line))
+  (let* ((line (buffer-substring-no-properties (line-beginning-position) (line-end-position)))
          (num-regexp "^* \\([0-9]+\\)")
          (nt (save-match-data
                (and (string-match num-regexp line)
                     (match-string 1 line)))))
-    (when nt
-      (switch-to-buffer
-       (find-file-noselect (concat --notes-folder "/note-" nt ".txt"))))))
+    (message line)
+    (if nt
+        (switch-to-buffer
+         (find-file-noselect (concat rp-notes-folder "/note-" nt ".txt")))
+      (message "Cursor not over a note"))))
 
 (defun --move-next-note ()
   "Find next note marker in the *notes* buffer"
@@ -80,13 +82,25 @@
 (defun --open-dired ()
   "Open dired in the notes folder"
   (interactive)
-  (dired --notes-folder))
+  (dired rp-notes-folder))
+
+(defun --kill ()
+  "Kill current buffer without asking anything"
+  (interactive)
+  (kill-buffer (current-buffer)))
+
+(defun --width-of-max-num (lst)
+  (if lst
+      (length (number-to-string (apply 'max lst)))
+    0))
+
+(defvar --notes-name-spacing 3)
 
 (defun rp-notes ()
   "Show list of notes in $HOME/.notes"
   (interactive)
   (--create-notes-folder-if-needed)
-    (let* ((existing-notes (directory-files --notes-folder nil (rx "note-" (zero-or-more digit) ".txt")))
+    (let* ((existing-notes (directory-files rp-notes-folder nil (rx "note-" (zero-or-more digit) ".txt")))
            (note-regexp "^note-\\([0-9]+\\).txt$" )
            (notes (seq-filter 'numberp
                               (mapcar (lambda (fname) (save-match-data
@@ -105,14 +119,19 @@
       (local-set-key (kbd "n") 'rp-new-note)
       (local-set-key (kbd "r") 'rp-notes)
       (local-set-key (kbd "d") '--open-dired)
-      (let ((inhibit-read-only t))
+      (local-set-key (kbd "q") '--kill)
+      (let ((inhibit-read-only t)
+            ;; How much room do we give the notes number?
+            (width (+ (--width-of-max-num notes) --notes-name-spacing))
+            (sorted-notes (sort notes '<)))
         (erase-buffer)
-        (let ((curr notes))
-          (while (not (null curr))
-            (let* ((snt (number-to-string (car curr)))
-                   (line (string-trim (car (--read-first-lines (concat (getenv "HOME") "/.notes/note-" snt ".txt") 1)))))
-              (insert (concat "* " snt "    " line))
-              (when (not (null (cdr curr)))
-                (newline))
-              (setq curr (cdr curr))))))
+        (insert "Notes available in ")
+        (insert rp-notes-folder)
+        (newline)
+        (newline)
+        (dolist (nt sorted-notes)
+          (let* ((snt (number-to-string nt))
+                 (line (--read-first-lines (concat rp-notes-folder "/note-" snt ".txt") 1)))
+            (insert (concat "* " snt (make-string (- width (length snt)) ?\s) (car line)))
+            (newline))))
       (beginning-of-buffer)))
