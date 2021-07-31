@@ -1,24 +1,34 @@
+(require 'subr-x)
 
-(defun rp-full ()
-  "Toggle full/maximal screen"
-  (interactive)
+;; From http://ergoemacs.org/emacs/elisp_generate_uuid.html
+(defun rp-generate-random-uuid ()
+  "Insert a UUID - calls “uuidgen” on MacOS, Linux, and PowelShell on Microsoft Windows."
   (cond
-   ;; windows 10
-   ((eq window-system 'w32) (toggle-frame-maximized))
-   ;; mac os x
-   ((eq window-system 'ns) (toggle-frame-fullscreen))
-   ;; do nothing otherwise
-   ))
-
-(defun rp-edit-init ()
-  "Edit emacs initialization file"
-  (interactive)
-  (find-file (concat (getenv "HOME") "/.emacs.d/init.el")))
-
-(defun rp-embiggen (size)
-  "Embiggen the font - optionally give the size as a parameter"
-  (interactive (list (if current-prefix-arg ; <=== User provided arg
-                         (prefix-numeric-value current-prefix-arg)
-                       rp-default-embiggen-size))) ; <=== Default
-  (set-face-attribute 'default nil :height (* size 10)))
-
+   ((string-equal system-type "windows-nt")
+    (string-trim (shell-command-to-string "pwsh.exe -Command [guid]::NewGuid().toString()")))
+   ((string-equal system-type "darwin") ; Mac
+    (string-trim (shell-command-to-string "uuidgen")))
+   ((string-equal system-type "gnu/linux")
+    (string-trim (shell-command-to-string "uuidgen")))
+   (t
+    ;; Code here by Christopher Wellons, 2011-11-18.
+    ;; Editted Hideki Saito further to generate all valid variants
+    ;; for "N" in xxxxxxxx-xxxx-Mxxx-Nxxx-xxxxxxxxxxxx format.
+    (let ((myStr (md5 (format "%s%s%s%s%s%s%s%s%s%s"
+                              (user-uid)
+                              (emacs-pid)
+                              (system-name)
+                              (user-full-name)
+                              (current-time)
+                              (emacs-uptime)
+                              (garbage-collect)
+                              (buffer-string)
+                              (random)
+                              (recent-keys)))))
+      (format "%s-%s-4%s-%s%s-%s"
+              (substring myStr 0 8)
+              (substring myStr 8 12)
+              (substring myStr 13 16)
+              (format "%x" (+ 8 (random 4)))
+              (substring myStr 17 20)
+              (substring myStr 20 32))))))

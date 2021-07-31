@@ -14,10 +14,6 @@
 
 ;; identify machines + define defaults
 
-(defvar rp-is-maximillian
-  (let ((hostname (substring (shell-command-to-string "hostname") 0 -1)))
-    (ignore-errors (string-prefix-p "Maximillian" hostname))))
-
 (defvar rp-is-macos
   (eq window-system 'ns))
 
@@ -28,19 +24,33 @@
   ;; only one running windows right now
   (eq system-type 'windows-nt))
 
-(defvar rp-default-embiggen-size
-  (cond
-   (rp-is-maximillian 14)
-   (rp-is-forrester 14)
-   (rp-is-macos 18)
-   ((t 12))))
+(defun file-in-emacs-folder (fname)
+  (let ((emacs-folder (concat (file-name-as-directory (getenv "HOME")) ".emacs.d")))
+    (concat (file-name-as-directory emacs-folder) fname)))
 
-(load-library (concat (getenv "HOME") "/.emacs.d/functions.el"))
-(load-library (concat (getenv "HOME") "/.emacs.d/notes.el"))
+(load-library (file-in-emacs-folder "functions.el"))
+(load-library (file-in-emacs-folder "commands.el"))
+(load-library (file-in-emacs-folder "notes.el"))
 
-(when rp-is-forrester
-  ;; load Forrester-specific functionality when on windows
-  (load-library (concat (getenv "HOME") "/.emacs.d/forrester.el")))
+
+;; PUT IN local.el
+;;
+;;
+;; (rp-embiggen ...):
+;;   (rp-is-maximillian 14)
+;;   (rp-is-forrester 14)
+;;
+;; move to local.el on forrester
+;;
+;; (when rp-is-forrester
+;;   ;; load Forrester-specific functionality when on windows
+;;   (load-library (file-in-emacs-folder "forrester.el")))
+;;
+;; (when rp-is-forrester
+;;   ;; start up in a reasonable directory
+;;   (cd (getenv "HOME"))
+;;   )
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -79,10 +89,9 @@
   (enable-theme 'green-phosphor)
   ;;(load-theme 'dracula t)
   ;;(load-theme 'green-is-the-new-black t)
-  (rp-embiggen rp-default-embiggen-size)
   (when rp-is-macos 
     ;; full screen
-    (global-set-key (kbd "<s-return>") 'rp-full))
+    (global-set-key (kbd "<s-return>") 'rp-toggle-fullscreen))
   ;; stop blinking
   (blink-cursor-mode 0)
   )
@@ -93,21 +102,13 @@
     
 (if window-system (--setup-windows) (--setup-text))
 
-;; overrides
-
-(when rp-is-forrester
-  ;; start up in a reasonable directory
-  (cd (getenv "HOME"))
-  )
-
-(defun -flash-mode-line ()
+(defun --flash-mode-line ()
   (interactive)
   (invert-face 'mode-line)
   (run-with-timer 0.1 nil #'invert-face 'mode-line))
   
 (setq visible-bell nil
-      ring-bell-function '-flash-mode-line)
-
+      ring-bell-function '--flash-mode-line)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -131,9 +132,6 @@
 ;; cf: https://www.emacswiki.org/emacs/LineNumbers
 (global-display-line-numbers-mode)
 
-;; indent automatically
-(define-key global-map (kbd "RET") 'newline-and-indent)
-
 ;; IDO
 (setq ido-enable-flex-matching t)
 (setq ido-everywhere t)
@@ -155,16 +153,12 @@
 ;;
 ;; C-c <letter> is reserved, so use that
 
-;; (defalias 'ctl-t-keymap (make-sparse-keymap))
-;; (defvar ctl-t-map (symbol-function 'ctl-t-keymap)
-;;   "Global keymap for characters following C-o.")
-;; (define-key global-map "\C-o" 'ctl-t-keymap)
-
 (defalias 'custom-notes-keymap (make-sparse-keymap))
 (defvar custom-notes-map (symbol-function 'custom-notes-keymap))
 
+(global-set-key (kbd "RET") 'newline-and-indent)  ;; indent automatically
 (global-set-key (kbd "C-c x") 'execute-extended-command)
-(global-set-key (kbd "C-c f") 'rp-full)
+(global-set-key (kbd "C-c f") 'rp-toggle-fullscreen)
 (global-set-key (kbd "C-c n") 'custom-notes-keymap)
 
 (define-key custom-notes-map (kbd "l") 'rp-notes)
@@ -182,3 +176,8 @@
 (ignore-errors
     (load "/Users/riccardo/.opam/system/share/emacs/site-lisp/tuareg-site-file")
   )
+
+;; override with local settings
+
+(if (file-readable-p (file-in-emacs-folder "local.el"))
+    (load-library (file-in-emacs-folder "local.el")))

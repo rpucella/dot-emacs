@@ -4,3 +4,7 @@
 /eshell/
 /ido.last
 /games
+/transient
+
+# for local settings
+/local.el
