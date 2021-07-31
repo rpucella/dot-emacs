@@ -9,7 +9,7 @@
 
 (defvar rp-notes-folder (concat (getenv "HOME") "/.notes"))
 
-(defun --create-notes-folder-if-needed ()
+(defun rp-notes--create-notes-folder-if-needed ()
   "Create notes folder if it doesn't exist."
   (unless (file-exists-p rp-notes-folder)
     (make-directory rp-notes-folder)))
@@ -17,7 +17,7 @@
 (defun rp-new-note ()
   "Create a 'permanent' note in $HOME/.notes"
   (interactive)
-  (--create-notes-folder-if-needed)
+  (rp-notes--create-notes-folder-if-needed)
   (let* ((existing-notes (directory-files rp-notes-folder nil (rx "note-" (zero-or-more digit) ".txt")))
          (note-regexp "note-\\([0-9]+\\).txt" )
          (notes (mapcar (lambda (fname) (save-match-data
@@ -36,7 +36,7 @@
                (newline))
       (switch-to-buffer buff))))
 
-(defun --read-first-lines (file n)
+(defun rp-notes--read-first-lines (file n)
   "Return first N lines of FILE."
   (with-temp-buffer
     (insert-file-contents-literally file)
@@ -47,7 +47,7 @@
                              (line-end-position))
                        (forward-line 1)))))
 
-(defun --read-note ()
+(defun rp-notes--read-note ()
   "Load the note pointed to by the point in a *notes* buffer"
   ;; which line are we on?
   (interactive)
@@ -56,13 +56,25 @@
          (nt (save-match-data
                (and (string-match num-regexp line)
                     (match-string 1 line)))))
-    (message line)
     (if nt
         (switch-to-buffer
          (find-file-noselect (concat rp-notes-folder "/note-" nt ".txt")))
       (message "Cursor not over a note"))))
 
-(defun --move-next-note ()
+(defun rp-notes--copy-note ()
+  "Copy the note to another folder"
+  (interactive)
+  (let* ((line (buffer-substring-no-properties (line-beginning-position) (line-end-position)))
+         (num-regexp "^* \\([0-9]+\\)")
+         (nt (save-match-data
+               (and (string-match num-regexp line)
+                    (match-string 1 line)))))
+    (if nt
+        (let ((name (read-file-name "Copy note to: ")))
+          (copy-file (concat rp-notes-folder "/note-" nt ".txt") name))
+      (message "Cursor not over a note"))))
+
+(defun rp-notes--move-next-note ()
   "Find next note marker in the *notes* buffer"
   (interactive)
   ;; move forward one
@@ -74,33 +86,33 @@
       (left-char))
     (left-char)))
 
-(defun --move-prev-note ()
+(defun rp-notes--move-prev-note ()
   "Find previous note marker in the *notes* buffer"
   (interactive)
   (let ((result (re-search-forward "^* " nil t -1)))
     result))
 
-(defun --open-dired ()
+(defun rp-notes--open-dired ()
   "Open dired in the notes folder"
   (interactive)
   (dired rp-notes-folder))
 
-(defun --kill ()
+(defun rp-notes--kill ()
   "Kill current buffer without asking anything"
   (interactive)
   (kill-buffer (current-buffer)))
 
-(defun --width-of-max-num (lst)
+(defun rp-notes--width-of-max-num (lst)
   (if lst
       (length (number-to-string (apply 'max lst)))
     0))
 
-(defvar --notes-name-spacing 3)
+(defvar rp-notes--notes-name-spacing 3)
 
 (defun rp-notes ()
   "Show list of notes in $HOME/.notes"
   (interactive)
-  (--create-notes-folder-if-needed)
+  (rp-notes--create-notes-folder-if-needed)
     (let* ((existing-notes (directory-files rp-notes-folder nil (rx "note-" (zero-or-more digit) ".txt")))
            (note-regexp "^note-\\([0-9]+\\).txt$" )
            (notes (seq-filter 'numberp
@@ -114,16 +126,17 @@
       ;; we probably want to define a new major mode instead
       ;; cf https://stackoverflow.com/questions/27321407/how-to-make-a-buffer-local-key-binding-in-emacs
       (use-local-map (copy-keymap text-mode-map))
-      (local-set-key (kbd "RET") '--read-note)
-      (local-set-key (kbd "TAB") '--move-next-note)
-      (local-set-key (kbd "<backtab>") '--move-prev-note)
+      (local-set-key (kbd "RET") 'rp-notes--read-note)
+      (local-set-key (kbd "TAB") 'rp-notes--move-next-note)
+      (local-set-key (kbd "<backtab>") 'rp-notes--move-prev-note)
       (local-set-key (kbd "n") 'rp-new-note)
       (local-set-key (kbd "r") 'rp-notes)
-      (local-set-key (kbd "d") '--open-dired)
-      (local-set-key (kbd "q") '--kill)
+      (local-set-key (kbd "d") 'rp-notes--open-dired)
+      (local-set-key (kbd "q") 'rp-notes--kill)
+      (local-set-key (kbd "c") 'rp-notes--copy-note)
       (let ((inhibit-read-only t)
             ;; How much room do we give the notes number?
-            (width (+ (--width-of-max-num notes) --notes-name-spacing))
+            (width (+ (rp-notes--width-of-max-num notes) rp-notes--notes-name-spacing))
             (sorted-notes (sort notes '<)))
         (erase-buffer)
         (insert "Notes available in ")
@@ -132,7 +145,7 @@
         (newline)
         (dolist (nt sorted-notes)
           (let* ((snt (number-to-string nt))
-                 (line (string-trim (car (--read-first-lines (concat rp-notes-folder "/note-" snt ".txt") 1)))))
+                 (line (string-trim (car (rp-notes--read-first-lines (concat rp-notes-folder "/note-" snt ".txt") 1)))))
             (insert (concat "* " snt (make-string (- width (length snt)) ?\s) line))
             (newline))))
       (beginning-of-buffer)))
