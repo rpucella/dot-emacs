@@ -57,6 +57,23 @@
                              (line-end-position))
                        (forward-line 1)))))
 
+(defun rp-notes--read-first-non-empty-line (file)
+  "Return first non-empty line of FILE."
+  (with-temp-buffer
+    (insert-file-contents-literally file)
+    (let ((result nil))
+      (while (and (not result) (not (eobp)))
+        (let ((line (string-trim (buffer-substring-no-properties
+                                  (line-beginning-position)
+                                  (line-end-position)))))
+          (unless (string-empty-p line)
+            (setq result line)))
+        (forward-line 1))
+      (if result
+          result
+        "<empty">))))
+
+
 (defun rp-notes-read-note ()
   "Load the note pointed to by the point in a *notes* buffer"
   ;; which line are we on?
@@ -144,8 +161,8 @@
       (newline)
       (dolist (nt sorted-notes)
         (let* ((snt (number-to-string nt))
-               (line (string-trim (car (rp-notes--read-first-lines (concat (file-name-as-directory rp-notes-folder)
-                                                                           (concat "note-" snt ".txt")) 1)))))
+               (line (rp-notes--read-first-non-empty-line (concat (file-name-as-directory rp-notes-folder)
+                                                                  (concat "note-" snt ".txt")))))
           (insert (concat "* " snt (make-string (- width (length snt)) ?\s) line))
           (newline))))
     (beginning-of-buffer)))
