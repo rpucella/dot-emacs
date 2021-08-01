@@ -3,6 +3,9 @@
 ;; TODO:
 ;;
 ;; Command to delete notes.
+;; Command to move notes.
+;; Switch to UUIDs and make them invisible to allow for selection
+;;   cf https://www.gnu.org/software/emacs/manual/html_node/elisp/Invisible-Text.html
 ;;
 
 (define-derived-mode rp-notes-mode special-mode "RP Notes"
@@ -37,8 +40,8 @@
          (new-note (+ (seq-reduce 'max notes 0) 1))
          (new-file (concat (file-name-as-directory rp-notes-folder) (concat "note-" (number-to-string new-note) ".txt")))
          (buff (get-file-buffer new-file)))
-    ;; TODO: if the file/buffer already exists, don't insert the # Note thing...
-    ;; also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
+    ;; TODO: if the file/buffer already exists, don't insert the # Note thing.
+    ;; Also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
     (if (null buff)
         (progn (switch-to-buffer (find-file-noselect new-file))
                (insert "# Note " (number-to-string new-note))
@@ -76,10 +79,9 @@
 
 (defun rp-notes-read-note ()
   "Load the note pointed to by the point in a *notes* buffer"
-  ;; which line are we on?
   (interactive)
   (let* ((line (buffer-substring-no-properties (line-beginning-position) (line-end-position)))
-         (num-regexp "^* \\([0-9]+\\)")
+         (num-regexp "^*\\([0-9]+\\)")
          (nt (save-match-data
                (and (string-match num-regexp line)
                     (match-string 1 line)))))
@@ -92,7 +94,7 @@
   "Copy the note to another folder"
   (interactive)
   (let* ((line (buffer-substring-no-properties (line-beginning-position) (line-end-position)))
-         (num-regexp "^* \\([0-9]+\\)")
+         (num-regexp "^*\\([0-9]+\\)")
          (nt (save-match-data
                (and (string-match num-regexp line)
                     (match-string 1 line)))))
@@ -104,19 +106,16 @@
 (defun rp-notes-move-next-note ()
   "Find next note marker in the *notes* buffer"
   (interactive)
-  ;; move forward one
+  ;; Move forward one (if you're on ^* already...).
   (right-char)
-  (let ((result (re-search-forward "^* " nil t)))
-    ;; move back to * or back to original char if not found
-    (when result
-      ;; move back an additional character
-      (left-char))
+  (let ((result (re-search-forward "^*" nil t)))
+    ;; Move back to * or back to original char if not found.
     (left-char)))
 
 (defun rp-notes-move-prev-note ()
   "Find previous note marker in the *notes* buffer"
   (interactive)
-  (let ((result (re-search-forward "^* " nil t -1)))
+  (let ((result (re-search-forward "^*" nil t -1)))
     result))
 
 (defun rp-notes-open-dired ()
@@ -163,6 +162,6 @@
         (let* ((snt (number-to-string nt))
                (line (rp-notes--read-first-non-empty-line (concat (file-name-as-directory rp-notes-folder)
                                                                   (concat "note-" snt ".txt")))))
-          (insert (concat "* " snt (make-string (- width (length snt)) ?\s) line))
+          (insert (concat "*" snt (make-string (- width (length snt)) ?\s) line))
           (newline))))
     (beginning-of-buffer)))

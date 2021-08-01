@@ -1,0 +1,22 @@
+#+title: Emacs Cheat Sheet
+
+* Commands
+
+  - web browser : M-x eww   [start it on a url]
+  - elisp interpreter: M-x ielm
+    
+* Help
+
+  - current mode: C-h m
+  - function: C-h f
+  - variable: C-h v
+  
+* Packages
+  
+  - magit: C-x g
+
+* Customized stuff
+
+  - rp-notes subsystem: C-c n  [n to create, l to show list]
+  - init.el edits: M-x rp-edit-init
+  - full-screen mode: C-c f

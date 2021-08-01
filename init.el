@@ -1,6 +1,8 @@
 ;; use M-x package-install-selected-packages when installing on a new system
 
 (require 'package)
+(require 'display-line-numbers)
+
 (setq package-archives
       '(("GNU ELPA"     . "https://elpa.gnu.org/packages/")
         ("MELPA Stable" . "https://stable.melpa.org/packages/")
@@ -20,31 +22,26 @@
 (defvar rp-is-windows
   (eq window-system 'w32))
 
-(defvar rp-is-forrester
-  ;; only one running windows right now
-  (eq system-type 'windows-nt))
-
-(defun file-in-emacs-folder (fname)
+(defun concat-emacs-folder (fname)
   (let ((emacs-folder (concat (file-name-as-directory (getenv "HOME")) ".emacs.d")))
     (concat (file-name-as-directory emacs-folder) fname)))
 
-(load-library (file-in-emacs-folder "functions.el"))
-(load-library (file-in-emacs-folder "commands.el"))
-(load-library (file-in-emacs-folder "notes.el"))
+(load-library (concat-emacs-folder "functions.el"))
+(load-library (concat-emacs-folder "commands.el"))
+(load-library (concat-emacs-folder "notes.el"))
 
 
 ;; PUT IN local.el
 ;;
 ;;
 ;; (rp-embiggen ...):
-;;   (rp-is-maximillian 14)
 ;;   (rp-is-forrester 14)
 ;;
 ;; move to local.el on forrester
 ;;
 ;; (when rp-is-forrester
 ;;   ;; load Forrester-specific functionality when on windows
-;;   (load-library (file-in-emacs-folder "forrester.el")))
+;;   (load-library (concat-emacs-folder "forrester.el")))
 ;;
 ;; (when rp-is-forrester
 ;;   ;; start up in a reasonable directory
@@ -79,8 +76,8 @@
 ;;  Screen setup
 ;;
 
-(defun --setup-windows ()
-  ;; might depend on the machine
+(when window-system
+  ;; WINDOW SYSTEM
   (setq default-frame-alist '((height . 40) (width . 120) (left . 24) (top . 24)))
   (set-frame-font "Hack-12" nil t)
   (load-theme 'green-phosphor t)
@@ -89,19 +86,15 @@
   (enable-theme 'green-phosphor)
   ;;(load-theme 'dracula t)
   ;;(load-theme 'green-is-the-new-black t)
-  (when rp-is-macos 
-    ;; full screen
-    (global-set-key (kbd "<s-return>") 'rp-toggle-fullscreen))
   ;; stop blinking
   (blink-cursor-mode 0)
   )
 
-(defun --setup-text ()
+(when (not window-system)
+  ;; TEXT SYSTEM
   (menu-bar-mode 0)
   )
     
-(if window-system (--setup-windows) (--setup-text))
-
 (defun --flash-mode-line ()
   (interactive)
   (invert-face 'mode-line)
@@ -127,9 +120,11 @@
             kill-buffer-query-functions))
 
 ;; enable line numbers
-(require 'display-line-numbers)
-;; need to put in "don't put lns on some modes" restriction here
-;; cf: https://www.emacswiki.org/emacs/LineNumbers
+(defun display-line-numbers--turn-on ()
+  ;; turn on line number mode for listed modes
+  (message (symbol-name major-mode))
+  (when (derived-mode-p 'prog-mode 'text-mode)
+    (display-line-numbers-mode)))
 (global-display-line-numbers-mode)
 
 ;; IDO
@@ -137,8 +132,7 @@
 (setq ido-everywhere t)
 (ido-mode 1)
 (setq ido-use-filename-at-point 'guess)
-;; don't ask when creating new buffer
-(setq ido-create-new-buffer 'always)
+(setq ido-create-new-buffer 'always) ;; don't ask when creating new buffer
 
 ;; use spaces for indentation in lieu of tabs
 (setq-default indent-tabs-mode nil)
@@ -146,10 +140,13 @@
 ;; disable warning about upcase-region
 (put 'upcase-region 'disabled nil)
 
+;; shells are login shells
+(setq explicit-bash-args '("--noediting" "-i" "-l"))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; new key bindings
+;; Key bindings
 ;;
 ;; C-c <letter> is reserved, so use that
 
@@ -160,24 +157,14 @@
 (global-set-key (kbd "C-c x") 'execute-extended-command)
 (global-set-key (kbd "C-c f") 'rp-toggle-fullscreen)
 (global-set-key (kbd "C-c n") 'custom-notes-keymap)
+(global-set-key (kbd "C-c c") 'rp-cheat-sheet)
 
 (define-key custom-notes-map (kbd "l") 'rp-notes)
 (define-key custom-notes-map (kbd "n") 'rp-new-note)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;; not processed yet
-
-
-;; shells are login shells
-(setq explicit-bash-args '("--noediting" "-i" "-l"))
-
-;; ocaml mode for emacs on Max
-(ignore-errors
-    (load "/Users/riccardo/.opam/system/share/emacs/site-lisp/tuareg-site-file")
-  )
+(when rp-is-macos 
+  (global-set-key (kbd "<s-return>") 'rp-toggle-fullscreen))
 
 ;; override with local settings
-
-(if (file-readable-p (file-in-emacs-folder "local.el"))
-    (load-library (file-in-emacs-folder "local.el")))
+(if (file-readable-p (concat-emacs-folder "local.el"))
+    (load-library (concat-emacs-folder "local.el")))

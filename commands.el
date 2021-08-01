@@ -16,7 +16,7 @@
 (defun rp-edit-init ()
   "Edit emacs initialization file"
   (interactive)
-  (find-file (concat (getenv "HOME") "/.emacs.d/init.el")))
+  (find-file (concat-emacs-folder "init.el")))
 
 
 (defun rp-embiggen (size)
@@ -30,3 +30,8 @@
 (defun rp-insert-random-uuid ()
   (interactive)
   (insert (rp-generate-random-uuid)))
+
+
+(defun rp-cheat-sheet ()
+  (interactive)
+  (switch-to-buffer (find-file-noselect (concat-emacs-folder "cheat-sheet.org"))))
