@@ -2,6 +2,7 @@
 
 * Commands
 
+  - indent region: C-M-\
   - web browser : M-x eww   [start it on a url]
   - elisp interpreter: M-x ielm
     

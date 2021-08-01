@@ -6,6 +6,8 @@
 ;; Command to move notes.
 ;; Switch to UUIDs and make them invisible to allow for selection
 ;;   cf https://www.gnu.org/software/emacs/manual/html_node/elisp/Invisible-Text.html
+;; Order by time last time updated (and show it possible)
+;;   - maybe there's a way to expand to see the UUID and the data modified?
 ;;
 
 (define-derived-mode rp-notes-mode special-mode "RP Notes"

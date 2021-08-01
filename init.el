@@ -31,25 +31,6 @@
 (load-library (concat-emacs-folder "notes.el"))
 
 
-;; PUT IN local.el
-;;
-;;
-;; (rp-embiggen ...):
-;;   (rp-is-forrester 14)
-;;
-;; move to local.el on forrester
-;;
-;; (when rp-is-forrester
-;;   ;; load Forrester-specific functionality when on windows
-;;   (load-library (concat-emacs-folder "forrester.el")))
-;;
-;; (when rp-is-forrester
-;;   ;; start up in a reasonable directory
-;;   (cd (getenv "HOME"))
-;;   )
-
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;;  Customization via M-x customize
