@@ -27,7 +27,7 @@
   (set-face-attribute 'default nil :height (* size 10)))
 
 
-(defun rp-insert-random-uuid ()
+(defun rp-random-uuid ()
   (interactive)
   (insert (rp-generate-random-uuid)))
 
@@ -35,3 +35,11 @@
 (defun rp-cheat-sheet ()
   (interactive)
   (switch-to-buffer (find-file-noselect (concat-emacs-folder "cheat-sheet.org"))))
+
+
+(defun rp-date ()
+  ;; better - maybe `Thursday 5/20/2021`?
+  (interactive)
+  (insert (format-time-string "%A %m/%d/%y")))
+
+
