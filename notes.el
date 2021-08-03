@@ -137,11 +137,17 @@
 
 (defvar rp-notes--notes-name-spacing 3)
 
+(defun rp-notes--notes-by-update-time ()
+  (let* ((filter (rx "note-" (zero-or-more digit) ".txt"))
+         (notes (directory-files-and-attributes rp-notes-folder nil filter t))
+         (notes (sort notes (lambda (x y) (time-less-p (nth 6 y) (nth 6 x))))))
+    (mapcar #'car notes)))
+
 (defun rp-notes ()
   "Show list of notes in $HOME/.notes"
   (interactive)
   (rp-notes--create-notes-folder-if-needed)
-  (let* ((existing-notes (directory-files rp-notes-folder nil (rx "note-" (zero-or-more digit) ".txt")))
+  (let* ((existing-notes (rp-notes--notes-by-update-time))
          (note-regexp "^note-\\([0-9]+\\).txt$" )
          (notes (seq-filter 'numberp
                             (mapcar (lambda (fname) (save-match-data
@@ -153,17 +159,17 @@
     (rp-notes-mode)
     (let ((inhibit-read-only t)
           ;; How much room do we give the notes number?
-          (width (+ (rp-notes--width-of-max-num notes) rp-notes--notes-name-spacing))
-          (sorted-notes (sort notes '<)))
+          (width (+ (rp-notes--width-of-max-num notes) rp-notes--notes-name-spacing)))
       (erase-buffer)
       (insert "Notes available in ")
       (insert rp-notes-folder)
       (newline)
       (newline)
-      (dolist (nt sorted-notes)
+      (dolist (nt notes)
         (let* ((snt (number-to-string nt))
                (line (rp-notes--read-first-non-empty-line (concat (file-name-as-directory rp-notes-folder)
                                                                   (concat "note-" snt ".txt")))))
-          (insert (concat "*" snt (make-string (- width (length snt)) ?\s) line))
+          (insert (concat "*" (propertize snt 'invisible t) "  "))
+          (insert line)
           (newline))))
     (beginning-of-buffer)))

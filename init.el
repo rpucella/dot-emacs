@@ -41,6 +41,8 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(custom-safe-themes
+   '("08765d801b06462a3ce7e414cdb747436ccaf0c073350be201d8f87bd0481435" default))
  '(package-selected-packages
    '(magit restclient ws-butler green-phosphor-theme green-is-the-new-black-theme dracula-theme go-mode web-mode markdown-mode)))
 (custom-set-faces
