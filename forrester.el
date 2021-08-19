@@ -1,10 +1,4 @@
-
-;; forrester-specific overrides
-
-;; git is in a weird place...
-(setq vc-git-program "C:\\Users\\rpucella\\Apps\\Cmder\\vendor\\git-for-windows\\bin\\git.exe")
-
-
+    
 ;; fbncc
 
 (defun fbncc ()
