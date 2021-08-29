@@ -125,6 +125,7 @@
 
 ;; shells are login shells
 (setq explicit-bash-args '("--noediting" "-i" "-l"))
+(setq explicit-zsh-args '("-l"))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

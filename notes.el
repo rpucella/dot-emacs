@@ -18,11 +18,11 @@
 (define-key rp-notes-mode-map (kbd "<backtab>") 'rp-notes-move-prev-note)
 (define-key rp-notes-mode-map (kbd "n") 'rp-notes-move-next-note)
 (define-key rp-notes-mode-map (kbd "p") 'rp-notes-move-prev-note)
-(define-key rp-notes-mode-map (kbd "N") 'rp-new-note)
 (define-key rp-notes-mode-map (kbd "g") 'rp-notes)
-(define-key rp-notes-mode-map (kbd "d") 'rp-notes-open-dired)
 (define-key rp-notes-mode-map (kbd "q") 'rp-notes-kill)
-(define-key rp-notes-mode-map (kbd "c") 'rp-notes-copy-note)
+(define-key rp-notes-mode-map (kbd "c") 'rp-new-note)
+(define-key rp-notes-mode-map (kbd "d") 'rp-notes-open-dired)
+(define-key rp-notes-mode-map (kbd "e") 'rp-notes-export-note)
 (define-key rp-notes-mode-map (kbd "f") 'rp-notes-show-name)
 
 (defvar rp-notes-folder (concat (file-name-as-directory (getenv "HOME")) ".notes"))
@@ -31,6 +31,9 @@
   "Create notes folder if it doesn't exist."
   (unless (file-exists-p rp-notes-folder)
     (make-directory rp-notes-folder)))
+
+(defun rp-notes--untitled ()
+  (format-time-string "%m/%d/%y %H:%M"))
 
 (defun rp-new-note ()
   "Create a 'permanent' note in $HOME/.notes"
@@ -43,7 +46,8 @@
     ;; Also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
     (if (null buff)
         (progn (switch-to-buffer (find-file-noselect new-file))
-               (insert "# Untitled Note")
+               (insert "# Note ")
+               (insert (rp-notes--untitled))
                (newline)
                (newline))
       (switch-to-buffer buff))))
@@ -106,8 +110,8 @@
          (find-file-noselect (concat (file-name-as-directory rp-notes-folder) nt)))
       (message "Cursor not over a note"))))
 
-(defun rp-notes-copy-note ()
-  "Copy the note to another folder"
+(defun rp-notes-export-note ()
+  "Export (copy) the note to another folder"
     (interactive)
   (let ((nt (rp-notes--current-name)))
     (if nt
