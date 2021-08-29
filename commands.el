@@ -38,8 +38,8 @@
 
 
 (defun rp-date ()
-  ;; better - maybe `Thursday 5/20/2021`?
+  ;; better - maybe `Thu 5/20/2021`?
   (interactive)
-  (insert (format-time-string "%A %m/%d/%y")))
+  (insert (format-time-string "%a %m/%d/%y")))
 
 

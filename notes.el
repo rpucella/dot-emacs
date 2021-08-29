@@ -84,8 +84,8 @@
   (let* ((line (buffer-substring-no-properties (line-beginning-position) (line-end-position)))
          (note-name-regexp (rx string-start
                                "*[["
-                               (group (zero-or-more (or (not "]")
-                                                        (seq "]" (not "]"))))
+                               (group (zero-or-more (or (not (any "]"))
+                                                        (seq "]" (not (any "]")))))
                                       (? "]")
                                       ".txt")
                                "]]")))
@@ -147,8 +147,8 @@
 (defun rp-notes--notes-by-update-time ()
   (let* ((filter (rx string-start
                      (zero-or-more (or
-                                    (not "]")
-                                    (seq "]" (not "]"))))
+                                    (not (any "]"))
+                                    (seq "]" (not (any "]")))))
                      (? "]")
                      ".txt"
                      string-end))   ;; any file *.txt without two ]] in the name
