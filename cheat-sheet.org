@@ -15,9 +15,22 @@
 * Packages
   
   - magit: C-x g
+  - packages: use M-x package-refresh-content if package-install fails
 
 * Customized stuff
 
-  - rp-notes subsystem: C-c n  [n to create, l to show list]
+  - rp-notes subsystem: C-c n
+  - rp-notes create note: C-c N
   - init.el edits: M-x rp-edit-init
   - full-screen mode: C-c f
+
+* Markdown mode
+
+  - toggle markdown-hide-markup: C-c C-x C-m
+  - create link: C-c C-l
+  - follow (open) link: C-c C-o
+
+* Setting up TRAMP on mac os x
+
+  - in .zshrc: [ $TERM = "dumb" ] && unsetopt zle && PS1='$ '
+  - call tramp by C-x C-f /ssh:riccardo@natalia:/Users/riccardo

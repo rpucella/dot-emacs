@@ -40,7 +40,7 @@
   (interactive)
   (rp-notes--create-notes-folder-if-needed)
   (let* ((uuid (rp-generate-random-uuid))
-         (new-file (concat (file-name-as-directory rp-notes-folder) (concat "n-" uuid ".txt")))
+         (new-file (concat (file-name-as-directory rp-notes-folder) (concat uuid ".md")))
          (buff (get-file-buffer new-file)))
     ;; TODO: if the file/buffer already exists, don't insert the # Note thing.
     ;; Also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
@@ -87,7 +87,7 @@
                                (group (zero-or-more (or (not (any "]"))
                                                         (seq "]" (not (any "]")))))
                                       (? "]")
-                                      ".txt")
+                                      (or ".txt" ".md"))
                                "]]")))
     (save-match-data
       (and (string-match note-name-regexp line)
@@ -150,8 +150,8 @@
                                     (not (any "]"))
                                     (seq "]" (not (any "]")))))
                      (? "]")
-                     ".txt"
-                     string-end))   ;; any file *.txt without two ]] in the name
+                     (or ".txt" ".md")
+                     string-end))   ;; any file *.txt|md without two ]] in the name
          (notes (directory-files-and-attributes rp-notes-folder nil filter t))
          (notes (sort notes (lambda (x y) (time-less-p (nth 6 y) (nth 6 x))))))
     (mapcar #'car notes)))
