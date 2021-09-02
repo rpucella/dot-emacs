@@ -44,7 +44,7 @@
  '(custom-safe-themes
    '("08765d801b06462a3ce7e414cdb747436ccaf0c073350be201d8f87bd0481435" default))
  '(package-selected-packages
-   '(org-bullets ssh magit restclient ws-butler green-phosphor-theme green-is-the-new-black-theme dracula-theme go-mode web-mode markdown-mode)))
+   '(org-roam org-bullets ssh magit restclient ws-butler green-phosphor-theme green-is-the-new-black-theme dracula-theme go-mode web-mode markdown-mode)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -127,6 +127,9 @@
 (setq explicit-bash-args '("--noediting" "-i" "-l"))
 (setq explicit-zsh-args '("-l"))
 
+(add-hook 'markdown-mode-hook
+          (lambda () (setq markdown-hide-markup t)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -134,17 +137,12 @@
 ;;
 ;; C-c <letter> is reserved, so use that
 
-(defalias 'custom-notes-keymap (make-sparse-keymap))
-(defvar custom-notes-map (symbol-function 'custom-notes-keymap))
-
 (global-set-key (kbd "RET") 'newline-and-indent)  ;; indent automatically
 (global-set-key (kbd "C-c x") 'execute-extended-command)
 (global-set-key (kbd "C-c f") 'rp-toggle-fullscreen)
-(global-set-key (kbd "C-c n") 'custom-notes-keymap)
+(global-set-key (kbd "C-c n") 'rp-notes)
+(global-set-key (kbd "C-c N") 'rp-new-note)
 (global-set-key (kbd "C-c c") 'rp-cheat-sheet)
-
-(define-key custom-notes-map (kbd "l") 'rp-notes)
-(define-key custom-notes-map (kbd "n") 'rp-new-note)
 
 (when rp-is-macos 
   (global-set-key (kbd "<s-return>") 'rp-toggle-fullscreen))
