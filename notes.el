@@ -10,7 +10,8 @@
 ;;   - maybe there's a way to expand to see the UUID and the data modified?
 ;;
 
-(define-derived-mode rp-notes-mode special-mode "RP Notes"
+(define-derived-mode rp-notes-mode
+  special-mode "RP Notes"
   "Major mode for showing quick notes.")
 
 (define-key rp-notes-mode-map (kbd "RET") 'rp-notes-read-note)
@@ -25,8 +26,9 @@
 (define-key rp-notes-mode-map (kbd "e") 'rp-notes-export-note)
 (define-key rp-notes-mode-map (kbd "f") 'rp-notes-show-name)
 
-(defvar rp-notes-folder (concat (file-name-as-directory (getenv "HOME")) ".notes"))
-
+(defvar rp-notes-folder
+  (concat (file-name-as-directory (getenv "HOME")) ".notes"))
+  
 (defun rp-notes--create-notes-folder-if-needed ()
   "Create notes folder if it doesn't exist."
   (unless (file-exists-p rp-notes-folder)
@@ -144,6 +146,17 @@
   (interactive)
   (kill-buffer (current-buffer)))
 
+(defun rp-notes--strip-header (s)
+  (let ((header-regexp (rx string-start
+                           (zero-or-more space)
+                           (optional
+                            (one-or-more "#")
+                            (one-or-more space))
+                           (group (zero-or-more not-newline))
+                           string-end)))
+    (and (string-match header-regexp s)
+         (match-string 1 s))))
+
 (defun rp-notes--notes-by-update-time ()
   (let* ((filter (rx string-start
                      (zero-or-more (or
@@ -152,28 +165,32 @@
                      (? "]")
                      (or ".txt" ".md")
                      string-end))   ;; any file *.txt|md without two ]] in the name
-         (notes (directory-files-and-attributes rp-notes-folder nil filter t))
+         (notes (directory-files-and-attributes (directory-file-name rp-notes-folder) nil filter t))
          (notes (sort notes (lambda (x y) (time-less-p (nth 6 y) (nth 6 x))))))
     (mapcar #'car notes)))
 
-(defun rp-notes ()
+(defun rp-notes (path)
   "Show list of notes in $HOME/.notes"
-  (interactive)
-  (rp-notes--create-notes-folder-if-needed)
-  (let* ((existing-notes (rp-notes--notes-by-update-time))
-         (notes existing-notes)
-         (buff (get-buffer-create "*Notes*")))
+  (interactive (list (if current-prefix-arg
+                         (read-directory-name "Notes directory: ")
+                       nil)))
+  (let ((buff (get-buffer-create "*Notes*")))
     (switch-to-buffer buff)
     (rp-notes-mode)
-    (let ((inhibit-read-only t))
+    (make-local-variable 'rp-notes-folder)
+    (when path (setq rp-notes-folder path))
+    (rp-notes--create-notes-folder-if-needed)
+    (let* ((existing-notes (rp-notes--notes-by-update-time))
+           (notes existing-notes)
+           (inhibit-read-only t))
       (erase-buffer)
-      (insert (concat "Notes available in " rp-notes-folder))
+      (insert (concat "Notes available in " (file-name-as-directory rp-notes-folder)))
       (newline)
       (newline)
       (dolist (nt notes)
         (let* ((line (rp-notes--read-first-non-empty-line
                       (concat (file-name-as-directory rp-notes-folder) nt))))
           (insert (concat "*" (propertize (concat "[[" nt "]]") 'invisible t) "  "))
-          (insert line)
+          (insert (rp-notes--strip-header line))
           (newline))))
     (beginning-of-buffer)))
