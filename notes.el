@@ -19,7 +19,7 @@
 (define-key rp-notes-mode-map (kbd "<backtab>") 'rp-notes-move-prev-note)
 (define-key rp-notes-mode-map (kbd "n") 'rp-notes-move-next-note)
 (define-key rp-notes-mode-map (kbd "p") 'rp-notes-move-prev-note)
-(define-key rp-notes-mode-map (kbd "g") 'rp-notes)
+(define-key rp-notes-mode-map (kbd "g") 'rp-notes-reload)
 (define-key rp-notes-mode-map (kbd "q") 'rp-notes-kill)
 (define-key rp-notes-mode-map (kbd "c") 'rp-new-note)
 (define-key rp-notes-mode-map (kbd "d") 'rp-notes-open-dired)
@@ -169,6 +169,10 @@
          (notes (sort notes (lambda (x y) (time-less-p (nth 6 y) (nth 6 x))))))
     (mapcar #'car notes)))
 
+(defun rp-notes-reload ()
+  (interactive)
+  (rp-notes--show))
+
 (defun rp-notes (path)
   "Show list of notes in $HOME/.notes"
   (interactive (list (if current-prefix-arg
@@ -180,17 +184,21 @@
     (make-local-variable 'rp-notes-folder)
     (when path (setq rp-notes-folder path))
     (rp-notes--create-notes-folder-if-needed)
-    (let* ((existing-notes (rp-notes--notes-by-update-time))
-           (notes existing-notes)
-           (inhibit-read-only t))
-      (erase-buffer)
-      (insert (concat "Notes available in " (file-name-as-directory rp-notes-folder)))
-      (newline)
-      (newline)
-      (dolist (nt notes)
-        (let* ((line (rp-notes--read-first-non-empty-line
-                      (concat (file-name-as-directory rp-notes-folder) nt))))
-          (insert (concat "*" (propertize (concat "[[" nt "]]") 'invisible t) "  "))
-          (insert (rp-notes--strip-header line))
-          (newline))))
-    (beginning-of-buffer)))
+    (rp-notes--show)))
+    
+(defun rp-notes--show ()
+  (let* ((existing-notes (rp-notes--notes-by-update-time))
+         (notes existing-notes)
+         (inhibit-read-only t))
+    (erase-buffer)
+    (insert (concat "Notes available in " (file-name-as-directory rp-notes-folder)))
+    (newline)
+    (newline)
+    (dolist (nt notes)
+      (let* ((line (rp-notes--read-first-non-empty-line
+                    (concat (file-name-as-directory rp-notes-folder) nt))))
+        (insert (concat "*" (propertize (concat "[[" nt "]]") 'invisible t) "  "))
+        (insert (rp-notes--strip-header line))
+        (newline))))
+  (beginning-of-buffer))
+
