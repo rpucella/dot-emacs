@@ -1,13 +1,6 @@
 
 (require 'subr-x)
 
-;; TODO:
-;;
-;; Command to delete notes.
-;; Order by time last time updated (and show it possible)
-;; - maybe there's a way to expand to see the UUID and the data modified?
-;;
-
 (define-derived-mode zweirn-mode
   special-mode "Zweirn"
   "Major mode for showing quick notes.")
@@ -20,17 +13,21 @@
 (define-key zweirn-mode-map (kbd "g") 'zweirn-reload)
 (define-key zweirn-mode-map (kbd "q") 'zweirn-kill)
 (define-key zweirn-mode-map (kbd "c") 'zweirn-create-note)
-(define-key zweirn-mode-map (kbd "c") 'zweirn-delete-note)
+(define-key zweirn-mode-map (kbd "d") 'zweirn-delete-note)
 (define-key zweirn-mode-map (kbd "D") 'zweirn-open-dired)
 (define-key zweirn-mode-map (kbd "e") 'zweirn-export-note)
 (define-key zweirn-mode-map (kbd "f") 'zweirn-show-name)
+(define-key zweirn-mode-map (kdb "s") 'zweirn-search)
+
+;; MODE PARAMETERS
 
 (defvar zweirn-folder
   (concat (file-name-as-directory (getenv "HOME")) ".notes"))
 
 (defvar zweirn-export-folder
   (concat (file-name-as-directory (getenv "HOME")) "Desktop"))
-  
+
+
 (defun zweirn--create-notes-folder-if-needed ()
   "Create notes folder if it doesn't exist."
   (unless (file-exists-p zweirn-folder)
@@ -129,15 +126,21 @@
           (copy-file (zweirn--note-path nt) (zweirn--export-path name)))
       (message "Cursor not over a note"))))
 
+(defun zweirn--note-title (nt)
+  (let ((line (zweirn--read-first-non-empty-line
+               (concat (file-name-as-directory zweirn-folder) nt))))
+    (zweirn--strip-header line)))
+
 (defun zweirn-delete-note ()
   "Delete a note"
     (interactive)
   (let ((nt (zweirn--current-name)))
     (if nt
         (let* ((title (zweirn--note-title nt))
-               (prompt (concat "Delete note (" title ")?")))
+               (prompt (concat "Delete note? " title)))
           (when (yes-or-no-p prompt)
-            (delete-file (zweirn--note-path nt))))
+            (delete-file (zweirn--note-path nt))
+            (zweirn--show)))
       (message "Cursor not over a note"))))
 
 (defun zweirn-move-next-note ()
@@ -222,4 +225,3 @@
         (insert (zweirn--strip-header line))
         (newline))))
   (beginning-of-buffer))
-
