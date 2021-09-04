@@ -20,7 +20,8 @@
 (define-key zweirn-mode-map (kbd "g") 'zweirn-reload)
 (define-key zweirn-mode-map (kbd "q") 'zweirn-kill)
 (define-key zweirn-mode-map (kbd "c") 'zweirn-create-note)
-(define-key zweirn-mode-map (kbd "d") 'zweirn-open-dired)
+(define-key zweirn-mode-map (kbd "c") 'zweirn-delete-note)
+(define-key zweirn-mode-map (kbd "D") 'zweirn-open-dired)
 (define-key zweirn-mode-map (kbd "e") 'zweirn-export-note)
 (define-key zweirn-mode-map (kbd "f") 'zweirn-show-name)
 
@@ -120,12 +121,23 @@
   (concat (file-name-as-directory zweirn-export-folder) n))
 
 (defun zweirn-export-note ()
-  "Export (copy) the note to another folder"
+  "Export (copy) the note to export folder"
     (interactive)
   (let ((nt (zweirn--current-name)))
     (if nt
         (let ((name (read-string "Note export name: ")))
           (copy-file (zweirn--note-path nt) (zweirn--export-path name)))
+      (message "Cursor not over a note"))))
+
+(defun zweirn-delete-note ()
+  "Delete a note"
+    (interactive)
+  (let ((nt (zweirn--current-name)))
+    (if nt
+        (let* ((title (zweirn--note-title nt))
+               (prompt (concat "Delete note (" title ")?")))
+          (when (yes-or-no-p prompt)
+            (delete-file (zweirn--note-path nt))))
       (message "Cursor not over a note"))))
 
 (defun zweirn-move-next-note ()
@@ -185,12 +197,13 @@
   (interactive (list (if current-prefix-arg
                          (read-directory-name "Notes directory: ")
                        nil)))
-  (let ((buff (get-buffer-create "*Zweirn*")))
+  (let* ((folder (or path zweirn-folder))
+         (name (concat "*Zweirn* " (file-name-as-directory folder)))
+         (buff (get-buffer-create name)))
     (switch-to-buffer buff)
     (zweirn-mode)
     (make-local-variable 'zweirn-folder)
-    (when path (setq zweirn-folder path))
-    (rename-buffer (concat "*Zweirn " (file-name-as-directory zweirn-folder) "*"))
+    (setq zweirn-folder folder)
     (zweirn--create-notes-folder-if-needed)
     (zweirn--show)))
     
@@ -199,7 +212,7 @@
          (notes existing-notes)
          (inhibit-read-only t))
     (erase-buffer)
-    (insert (concat "Directory: " (file-name-as-directory zweirn-folder)))
+    (insert (concat "Directory " (file-name-as-directory zweirn-folder)))
     (newline)
     (newline)
     (dolist (nt notes)
