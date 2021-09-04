@@ -18,6 +18,7 @@
 (define-key zweirn-mode-map (kbd "e") 'zweirn-export-note)
 (define-key zweirn-mode-map (kbd "f") 'zweirn-show-name)
 (define-key zweirn-mode-map (kbd "s") 'zweirn-search)
+(define-key zweirn-mode-map (kbd "l") 'zweirn-linked-notes)
 
 ;; MODE PARAMETERS
 
@@ -215,7 +216,7 @@
          (notes existing-notes)
          (inhibit-read-only t))
     (erase-buffer)
-    (insert "Directory " (file-name-as-directory zweirn-folder))
+    (insert "Notes directory " (file-name-as-directory zweirn-folder))
     (newline)
     (newline)
     (dolist (nt notes)
@@ -260,3 +261,51 @@
                   (newline)))
               (forward-line 1))))))
     (beginning-of-buffer)))
+
+(defun zweirn--find-all-links (nt)
+  (let ((link-regexp (rx "[["
+                         (group (zero-or-more (or (not (any "]"))
+                                                        (seq "]" (not (any "]"))))))
+                         "]]"))
+        (links '()))
+  (with-temp-buffer
+    (insert-file-contents-literally (zweirn--note-path nt))
+    (beginning-of-buffer)
+    (while (progn
+             (let ((found (re-search-forward link-regexp nil t)))
+               (when found
+                 (setq links (cons (match-string 1) links))
+                 t))))
+    links)))
+
+(defun zweirn--find-link (nt link)
+  (let ((link-regexp (regexp-quote (concat "[[" link "]]"))))
+    (with-temp-buffer
+      (insert-file-contents-literally (zweirn--note-path nt))
+      (beginning-of-buffer)
+      (if (re-search-forward link-regexp nil t) t nil))))
+
+(defun zweirn--find-linking-notes (nt)
+  (let* ((notes (zweirn--notes-by-update-time))
+         (title (zweirn--note-title nt))
+         (name (concat "*Zweirn Linked: " title "*"))
+         (buff (get-buffer-create name)))
+    (switch-to-buffer buff)
+    (setq buffer-read-only t)
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      (dolist (nt notes)
+        (when (zweirn--find-link nt title)
+          (let ((title (zweirn--note-title nt)))
+            (insert title))
+          (newline))))
+    (beginning-of-buffer)))
+
+(defun zweirn-linked-notes ()
+  "Find all notes that link to this note"
+  (interactive)
+  (let ((nt (zweirn--current-name)))
+    (if nt
+        (zweirn--find-linking-notes nt)
+      (message "Cursor not over a note"))))
+  
