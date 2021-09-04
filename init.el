@@ -28,7 +28,7 @@
 
 (load-library (concat-emacs-folder "functions.el"))
 (load-library (concat-emacs-folder "commands.el"))
-(load-library (concat-emacs-folder "notes.el"))
+(load-library (concat-emacs-folder "zweirn.el"))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -140,8 +140,8 @@
 (global-set-key (kbd "RET") 'newline-and-indent)  ;; indent automatically
 (global-set-key (kbd "C-c x") 'execute-extended-command)
 (global-set-key (kbd "C-c f") 'rp-toggle-fullscreen)
-(global-set-key (kbd "C-c n") 'rp-notes)
-(global-set-key (kbd "C-c N") 'rp-new-note)
+(global-set-key (kbd "C-c n") 'zweirn)
+(global-set-key (kbd "C-c N") 'zweirn-create-note)
 (global-set-key (kbd "C-c c") 'rp-cheat-sheet)
 
 (when rp-is-macos 

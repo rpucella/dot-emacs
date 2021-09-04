@@ -1,60 +1,61 @@
+
 (require 'subr-x)
 
 ;; TODO:
 ;;
 ;; Command to delete notes.
-;; Command to move notes.
-;; Switch to UUIDs and make them invisible to allow for selection
-;;   cf https://www.gnu.org/software/emacs/manual/html_node/elisp/Invisible-Text.html
 ;; Order by time last time updated (and show it possible)
-;;   - maybe there's a way to expand to see the UUID and the data modified?
+;; - maybe there's a way to expand to see the UUID and the data modified?
 ;;
 
-(define-derived-mode rp-notes-mode
-  special-mode "RP Notes"
+(define-derived-mode zweirn-mode
+  special-mode "Zweirn"
   "Major mode for showing quick notes.")
 
-(define-key rp-notes-mode-map (kbd "RET") 'rp-notes-read-note)
-(define-key rp-notes-mode-map (kbd "TAB") 'rp-notes-move-next-note)
-(define-key rp-notes-mode-map (kbd "<backtab>") 'rp-notes-move-prev-note)
-(define-key rp-notes-mode-map (kbd "n") 'rp-notes-move-next-note)
-(define-key rp-notes-mode-map (kbd "p") 'rp-notes-move-prev-note)
-(define-key rp-notes-mode-map (kbd "g") 'rp-notes-reload)
-(define-key rp-notes-mode-map (kbd "q") 'rp-notes-kill)
-(define-key rp-notes-mode-map (kbd "c") 'rp-new-note)
-(define-key rp-notes-mode-map (kbd "d") 'rp-notes-open-dired)
-(define-key rp-notes-mode-map (kbd "e") 'rp-notes-export-note)
-(define-key rp-notes-mode-map (kbd "f") 'rp-notes-show-name)
+(define-key zweirn-mode-map (kbd "RET") 'zweirn-read-note)
+(define-key zweirn-mode-map (kbd "TAB") 'zweirn-move-next-note)
+(define-key zweirn-mode-map (kbd "<backtab>") 'zweirn-move-prev-note)
+(define-key zweirn-mode-map (kbd "n") 'zweirn-move-next-note)
+(define-key zweirn-mode-map (kbd "p") 'zweirn-move-prev-note)
+(define-key zweirn-mode-map (kbd "g") 'zweirn-reload)
+(define-key zweirn-mode-map (kbd "q") 'zweirn-kill)
+(define-key zweirn-mode-map (kbd "c") 'zweirn-create-note)
+(define-key zweirn-mode-map (kbd "d") 'zweirn-open-dired)
+(define-key zweirn-mode-map (kbd "e") 'zweirn-export-note)
+(define-key zweirn-mode-map (kbd "f") 'zweirn-show-name)
 
-(defvar rp-notes-folder
+(defvar zweirn-folder
   (concat (file-name-as-directory (getenv "HOME")) ".notes"))
-  
-(defun rp-notes--create-notes-folder-if-needed ()
-  "Create notes folder if it doesn't exist."
-  (unless (file-exists-p rp-notes-folder)
-    (make-directory rp-notes-folder)))
 
-(defun rp-notes--untitled ()
+(defvar zweirn-export-folder
+  (concat (file-name-as-directory (getenv "HOME")) "Desktop"))
+  
+(defun zweirn--create-notes-folder-if-needed ()
+  "Create notes folder if it doesn't exist."
+  (unless (file-exists-p zweirn-folder)
+    (make-directory zweirn-folder)))
+
+(defun zweirn--untitled ()
   (format-time-string "%m/%d/%y %H:%M"))
 
-(defun rp-new-note ()
+(defun zweirn-create-note ()
   "Create a 'permanent' note in $HOME/.notes"
   (interactive)
-  (rp-notes--create-notes-folder-if-needed)
+  (zweirn--create-notes-folder-if-needed)
   (let* ((uuid (rp-generate-random-uuid))
-         (new-file (concat (file-name-as-directory rp-notes-folder) (concat uuid ".md")))
+         (new-file (concat (file-name-as-directory zweirn-folder) (concat uuid ".md")))
          (buff (get-file-buffer new-file)))
     ;; TODO: if the file/buffer already exists, don't insert the # Note thing.
     ;; Also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
     (if (null buff)
         (progn (switch-to-buffer (find-file-noselect new-file))
                (insert "# Note ")
-               (insert (rp-notes--untitled))
+               (insert (zweirn--untitled))
                (newline)
                (newline))
       (switch-to-buffer buff))))
 
-(defun rp-notes--read-first-lines (file n)
+(defun zweirn--read-first-lines (file n)
   "Return first N lines of FILE."
   (with-temp-buffer
     (insert-file-contents-literally file)
@@ -65,7 +66,7 @@
                              (line-end-position))
                        (forward-line 1)))))
 
-(defun rp-notes--read-first-non-empty-line (file)
+(defun zweirn--read-first-non-empty-line (file)
   "Return first non-empty line of FILE."
   (with-temp-buffer
     (insert-file-contents-literally file)
@@ -81,7 +82,7 @@
           result
         "<empty>"))))
 
-(defun rp-notes--current-name ()
+(defun zweirn--current-name ()
   "Return the filename of the note on the current line."
   (let* ((line (buffer-substring-no-properties (line-beginning-position) (line-end-position)))
          (note-name-regexp (rx string-start
@@ -95,33 +96,39 @@
       (and (string-match note-name-regexp line)
            (match-string 1 line)))))
 
-(defun rp-notes-show-name ()
+(defun zweirn-show-name ()
   "Show the name of the file containing the number on the current line."
   (interactive)
-  (let ((nt (rp-notes--current-name)))
+  (let ((nt (zweirn--current-name)))
     (if nt
         (message (concat "Note file: " nt))
       (message "Cursor not over a note"))))
 
-(defun rp-notes-read-note ()
+(defun zweirn-read-note ()
   "Load the note pointed to by the point in a *notes* buffer"
   (interactive)
-  (let ((nt (rp-notes--current-name)))
+  (let ((nt (zweirn--current-name)))
     (if nt
         (switch-to-buffer
-         (find-file-noselect (concat (file-name-as-directory rp-notes-folder) nt)))
+         (find-file-noselect (concat (file-name-as-directory zweirn-folder) nt)))
       (message "Cursor not over a note"))))
 
-(defun rp-notes-export-note ()
+(defun zweirn--note-path (nt)
+  (concat (file-name-as-directory zweirn-folder) nt))
+
+(defun zweirn--export-path (n)
+  (concat (file-name-as-directory zweirn-export-folder) n))
+
+(defun zweirn-export-note ()
   "Export (copy) the note to another folder"
     (interactive)
-  (let ((nt (rp-notes--current-name)))
+  (let ((nt (zweirn--current-name)))
     (if nt
-        (let ((name (read-file-name "Copy note to: ")))
-          (copy-file (concat (file-name-as-directory rp-notes-folder) nt) name))
+        (let ((name (read-string "Note export name: ")))
+          (copy-file (zweirn--note-path nt) (zweirn--export-path name)))
       (message "Cursor not over a note"))))
 
-(defun rp-notes-move-next-note ()
+(defun zweirn-move-next-note ()
   "Find next note marker in the *notes* buffer"
   (interactive)
   ;; Move forward one (if you're on ^* already...).
@@ -130,23 +137,23 @@
     ;; Move back to * or back to original char if not found.
     (left-char)))
 
-(defun rp-notes-move-prev-note ()
+(defun zweirn-move-prev-note ()
   "Find previous note marker in the *notes* buffer"
   (interactive)
   (let ((result (re-search-forward "^*" nil t -1)))
     result))
 
-(defun rp-notes-open-dired ()
+(defun zweirn-open-dired ()
   "Open dired in the notes folder"
   (interactive)
-  (dired rp-notes-folder))
+  (dired zweirn-folder))
 
-(defun rp-notes-kill ()
+(defun zweirn-kill ()
   "Kill current buffer without asking anything"
   (interactive)
   (kill-buffer (current-buffer)))
 
-(defun rp-notes--strip-header (s)
+(defun zweirn--strip-header (s)
   (let ((header-regexp (rx string-start
                            (zero-or-more space)
                            (optional
@@ -157,7 +164,7 @@
     (and (string-match header-regexp s)
          (match-string 1 s))))
 
-(defun rp-notes--notes-by-update-time ()
+(defun zweirn--notes-by-update-time ()
   (let* ((filter (rx string-start
                      (zero-or-more (or
                                     (not (any "]"))
@@ -165,40 +172,41 @@
                      (? "]")
                      (or ".txt" ".md")
                      string-end))   ;; any file *.txt|md without two ]] in the name
-         (notes (directory-files-and-attributes (directory-file-name rp-notes-folder) nil filter t))
+         (notes (directory-files-and-attributes (directory-file-name zweirn-folder) nil filter t))
          (notes (sort notes (lambda (x y) (time-less-p (nth 6 y) (nth 6 x))))))
     (mapcar #'car notes)))
 
-(defun rp-notes-reload ()
+(defun zweirn-reload ()
   (interactive)
-  (rp-notes--show))
+  (zweirn--show))
 
-(defun rp-notes (path)
+(defun zweirn (path)
   "Show list of notes in $HOME/.notes"
   (interactive (list (if current-prefix-arg
                          (read-directory-name "Notes directory: ")
                        nil)))
-  (let ((buff (get-buffer-create "*Notes*")))
+  (let ((buff (get-buffer-create "*Zweirn*")))
     (switch-to-buffer buff)
-    (rp-notes-mode)
-    (make-local-variable 'rp-notes-folder)
-    (when path (setq rp-notes-folder path))
-    (rp-notes--create-notes-folder-if-needed)
-    (rp-notes--show)))
+    (zweirn-mode)
+    (make-local-variable 'zweirn-folder)
+    (when path (setq zweirn-folder path))
+    (rename-buffer (concat "*Zweirn " (file-name-as-directory zweirn-folder) "*"))
+    (zweirn--create-notes-folder-if-needed)
+    (zweirn--show)))
     
-(defun rp-notes--show ()
-  (let* ((existing-notes (rp-notes--notes-by-update-time))
+(defun zweirn--show ()
+  (let* ((existing-notes (zweirn--notes-by-update-time))
          (notes existing-notes)
          (inhibit-read-only t))
     (erase-buffer)
-    (insert (concat "Notes available in " (file-name-as-directory rp-notes-folder)))
+    (insert (concat "Directory: " (file-name-as-directory zweirn-folder)))
     (newline)
     (newline)
     (dolist (nt notes)
-      (let* ((line (rp-notes--read-first-non-empty-line
-                    (concat (file-name-as-directory rp-notes-folder) nt))))
+      (let* ((line (zweirn--read-first-non-empty-line
+                    (concat (file-name-as-directory zweirn-folder) nt))))
         (insert (concat "*" (propertize (concat "[[" nt "]]") 'invisible t) "  "))
-        (insert (rp-notes--strip-header line))
+        (insert (zweirn--strip-header line))
         (newline))))
   (beginning-of-buffer))
 
