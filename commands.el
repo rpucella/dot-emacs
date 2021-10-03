@@ -1,7 +1,8 @@
 (require 'subr-x)
 
+(defvar rp/default-embiggen-size 12)
 
-(defun rp-toggle-fullscreen ()
+(defun rp/toggle-fullscreen ()
   "Toggle full/maximal screen"
   (interactive)
   (cond
@@ -13,31 +14,31 @@
    ))
 
 
-(defun rp-edit-init ()
+(defun rp/edit-init ()
   "Edit emacs initialization file"
   (interactive)
   (find-file (concat-emacs-folder "init.el")))
 
 
-(defun rp-embiggen (size)
+(defun rp/embiggen (size)
   "Embiggen the font - optionally give the size as a parameter"
   (interactive (list (if current-prefix-arg ; <=== User provided arg
                          (prefix-numeric-value current-prefix-arg)
-                       rp-default-embiggen-size))) ; <=== Default
+                       rp/default-embiggen-size))) ; <=== Default
   (set-face-attribute 'default nil :height (* size 10)))
 
 
-(defun rp-random-uuid ()
+(defun rp/random-uuid ()
   (interactive)
-  (insert (rp-generate-random-uuid)))
+  (insert (rp/generate-random-uuid)))
 
 
-(defun rp-cheat-sheet ()
+(defun rp/cheat-sheet ()
   (interactive)
   (switch-to-buffer (find-file-noselect (concat-emacs-folder "cheat-sheet.org"))))
 
 
-(defun rp-date ()
+(defun rp/date ()
   ;; better - maybe `Thu 5/20/2021`?
   (interactive)
   (insert (format-time-string "%a %m/%d/%y")))

@@ -16,10 +16,10 @@
 
 ;; identify machines + define defaults
 
-(defvar rp-is-macos
+(defvar rp/is-macos
   (eq window-system 'ns))
 
-(defvar rp-is-windows
+(defvar rp/is-windows
   (eq window-system 'w32))
 
 (defun concat-emacs-folder (fname)
@@ -127,8 +127,9 @@
 (setq explicit-bash-args '("--noediting" "-i" "-l"))
 (setq explicit-zsh-args '("-l"))
 
-(add-hook 'markdown-mode-hook
-          (lambda () (setq markdown-hide-markup t)))
+;; Cannot put this in markdown-mode-hook, since needs to be set before
+;; mode starts.
+(setq-default markdown-hide-markup t)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -139,13 +140,15 @@
 
 (global-set-key (kbd "RET") 'newline-and-indent)  ;; indent automatically
 (global-set-key (kbd "C-c x") 'execute-extended-command)
-(global-set-key (kbd "C-c f") 'rp-toggle-fullscreen)
+(global-set-key (kbd "C-c f") 'rp/toggle-fullscreen)
 (global-set-key (kbd "C-c n") 'zweirn)
 (global-set-key (kbd "C-c N") 'zweirn-create-note)
-(global-set-key (kbd "C-c c") 'rp-cheat-sheet)
+(global-set-key (kbd "C-c c") 'rp/cheat-sheet)
 
-(when rp-is-macos 
-  (global-set-key (kbd "<s-return>") 'rp-toggle-fullscreen))
+(when rp/is-macos 
+  (global-set-key (kbd "<s-return>") 'rp/toggle-fullscreen)
+  ;; right option key is used for accents (standard Option)
+  (setq mac-right-option-modifier 'none))
 
 ;; override with local settings
 (if (file-readable-p (concat-emacs-folder "local.el"))

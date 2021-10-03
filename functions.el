@@ -1,13 +1,13 @@
 (require 'subr-x)
 
-(defvar rp-powershell-random-uuid "powershell.exe -Command [guid]::NewGuid().toString()")
+(defvar rp/powershell-random-uuid "powershell.exe -Command [guid]::NewGuid().toString()")
 
 ;; From http://ergoemacs.org/emacs/elisp_generate_uuid.html
-(defun rp-generate-random-uuid ()
+(defun rp/generate-random-uuid ()
   "Insert a UUID - calls “uuidgen” on MacOS, Linux, and PowelShell on Microsoft Windows."
   (cond
    ((string-equal system-type "windows-nt")
-    (string-trim (shell-command-to-string rp-powershell-random-uuid)))
+    (string-trim (shell-command-to-string rp/powershell-random-uuid)))
    ((string-equal system-type "darwin") ; Mac
     (string-trim (shell-command-to-string "uuidgen")))
    ((string-equal system-type "gnu/linux")
