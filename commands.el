@@ -43,3 +43,27 @@
   (insert (format-time-string "%a %m/%d/%y")))
 
 
+(defun rp-deoutlook (str &optional from to)
+  "Translate outlook special characters in pasted text.
+
+When called interactively, work on current paragraph or text selection.
+
+When called in lisp code, if STRING is non-nil, returns a changed string.
+If STRIN is nil, change the text in the region between positions FROM and TO."
+  (interactive
+   (if (use-region-p)
+       (list nil (region-beginning) (region-end))
+     (let ((bds (bounds-of-thing-at-point 'paragraph)) )
+       (list nil (car bds) (cdr bds)) ) ) )
+
+  (let* ((workOnStringP (if $string t nil))
+         (inputStr (if workOnStringP $string (buffer-substring-no-properties $from $to))))
+    (let ((outputStr (let ((case-fold-search t))
+                       (replace-regexp-in-string "’" "'" inputStr))))
+      (if workOnStringP
+          outputStr
+        (save-excursion
+          (delete-region $from $to)
+          (goto-char $from)
+          (insert outputStr))))))
+
