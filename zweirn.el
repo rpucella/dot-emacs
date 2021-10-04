@@ -19,11 +19,16 @@
 (define-key zweirn-mode-map (kbd "f") 'zweirn-show-name)
 (define-key zweirn-mode-map (kbd "s") 'zweirn-search)
 (define-key zweirn-mode-map (kbd "l") 'zweirn-linked-notes)
+(define-key zweirn-mode-map (kbd "a") 'zweirn-archive-note)
+(define-key zweirn-mode-map (kbd "A") 'zweirn-open-archive-dired)
 
 ;; MODE PARAMETERS
 
 (defvar zweirn-folder
   (concat (file-name-as-directory (getenv "HOME")) ".notes"))
+
+(defvar zweirn-archive-folder
+  (concat (file-name-as-directory (getenv "HOME")) (file-name-as-directory ".notes") "archive"))
 
 (defvar zweirn-export-folder
   (concat (file-name-as-directory (getenv "HOME")) "Desktop"))
@@ -32,7 +37,8 @@
 (defun zweirn--create-notes-folder-if-needed ()
   "Create notes folder if it doesn't exist."
   (unless (file-exists-p zweirn-folder)
-    (make-directory zweirn-folder)))
+    (make-directory zweirn-folder)
+    (make-directory zweird-archive-folder)))
 
 (defun zweirn--untitled ()
   (format-time-string "%m/%d/%y %H:%M"))
@@ -41,7 +47,7 @@
   "Create a 'permanent' note in $HOME/.notes"
   (interactive)
   (zweirn--create-notes-folder-if-needed)
-  (let* ((uuid (rp-generate-random-uuid))
+  (let* ((uuid (rp/generate-random-uuid))
          (new-file (concat (file-name-as-directory zweirn-folder) (concat uuid ".md")))
          (buff (get-file-buffer new-file)))
     ;; TODO: if the file/buffer already exists, don't insert the # Note thing.
@@ -118,13 +124,54 @@
 (defun zweirn--export-path (n)
   (concat (file-name-as-directory zweirn-export-folder) n))
 
+(defun zweirn--archive-path (n)
+  (concat (file-name-as-directory zweirn-archive-folder) n))
+
+(defun zweirn--clean-title (str)
+  ;; mostly from https://github.com/kaushalmodi/ox-hugo/blob/e42a824c3253e127fc8b86a5370c8d5b96a45166/ox-hugo.el#L1816-L1886
+  (let* (;; Convert to lowercase.
+         (str (downcase str))
+         ;; Replace any non-alpha char by space.
+         (str (replace-regexp-in-string "[^[:alnum:]]" " " str))
+         ;; On emacs 24.5, multibyte punctuation characters like "："
+         ;; are considered as alphanumeric characters! Below evals to
+         ;; non-nil on emacs 24.5:
+         ;;   (string-match-p "[[:alnum:]]+" "：")
+         ;; So replace them with space manually.
+         (str (if (version< emacs-version "25.0")
+                  (let ((multibyte-punctuations-str "：")) ;String of multibyte punctuation chars
+                    (replace-regexp-in-string (format "[%s]" multibyte-punctuations-str) " " str))
+                str))
+         ;; Remove leading and trailing whitespace.
+         (str (replace-regexp-in-string "\\(^[[:space:]]*\\|[[:space:]]*$\\)" "" str))
+         ;; Replace 2 or more spaces with a single space.
+         (str (replace-regexp-in-string "[[:space:]]\\{2,\\}" " " str))
+         ;; Replace spaces with hyphens.
+         (str (replace-regexp-in-string " " "-" str)))
+    str))
+
+
 (defun zweirn-export-note ()
   "Export (copy) the note to export folder"
     (interactive)
   (let ((nt (zweirn--current-name)))
     (if nt
-        (let ((name (read-string "Note export name: ")))
+        (let* ((title (zweirn--note-title nt))
+               (name (format "%s.md" (zweirn--clean-title title)))
+               (name (read-string (format "Export name (%s): " name) nil nil name)))
           (copy-file (zweirn--note-path nt) (zweirn--export-path name)))
+      (message "Cursor not over a note"))))
+
+(defun zweirn-archive-note ()
+  "Archive (move) the note to archive folder"
+    (interactive)
+  (let ((nt (zweirn--current-name)))
+    (if nt
+        (let* ((title (zweirn--note-title nt))
+               (name (format "%s.md" (zweirn--clean-title title)))
+               (name (read-string (format "Archive name (%s): " name) nil nil name)))
+          (rename-file (zweirn--note-path nt) (zweirn--archive-path name))
+          (zweirn--show))
       (message "Cursor not over a note"))))
 
 (defun zweirn--note-title (nt)
@@ -163,6 +210,11 @@
   "Open dired in the notes folder"
   (interactive)
   (dired zweirn-folder))
+
+(defun zweirn-open-archive-dired ()
+  "Open dired in the archive folder"
+  (interactive)
+  (dired zweirn-archive-folder))
 
 (defun zweirn-kill ()
   "Kill current buffer without asking anything"
@@ -225,7 +277,7 @@
         (insert "*" (propertize (concat "[[" nt "]]") 'invisible t) "  ")
         (insert (zweirn--strip-header line))
         (newline))))
-  (beginning-of-buffer))
+  (goto-char (point-min)))
 
 (defun zweirn-search (s)
   ;; TODO: We probably need a dedicated mode for this to navigate results.
@@ -260,7 +312,7 @@
                   (insert " " line)
                   (newline)))
               (forward-line 1))))))
-    (beginning-of-buffer)))
+    (goto-char (point-min))))
 
 (defun zweirn--find-all-links (nt)
   (let ((link-regexp (rx "[["
@@ -270,7 +322,7 @@
         (links '()))
   (with-temp-buffer
     (insert-file-contents-literally (zweirn--note-path nt))
-    (beginning-of-buffer)
+    (goto-char (point-min))
     (while (progn
              (let ((found (re-search-forward link-regexp nil t)))
                (when found
@@ -282,7 +334,7 @@
   (let ((link-regexp (regexp-quote (concat "[[" link "]]"))))
     (with-temp-buffer
       (insert-file-contents-literally (zweirn--note-path nt))
-      (beginning-of-buffer)
+      (goto-char (point-min))
       (if (re-search-forward link-regexp nil t) t nil))))
 
 (defun zweirn--find-linking-notes (nt)
@@ -303,7 +355,7 @@
           (let ((title (zweirn--note-title nt)))
             (insert title))
           (newline))))
-    (beginning-of-buffer)))
+    (goto-char (point-min))))
 
 (defun zweirn-linked-notes ()
   "Find all notes that link to this note"
