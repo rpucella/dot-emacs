@@ -234,6 +234,7 @@
 
 (defun zweirn--notes-by-update-time ()
   (let* ((filter (rx string-start
+                     alnum
                      (zero-or-more (or
                                     (not (any "]"))
                                     (seq "]" (not (any "]")))))
