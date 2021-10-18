@@ -44,7 +44,7 @@
   (insert (format-time-string "%a %m/%d/%y")))
 
 
-(defun rp-deoutlook (str &optional from to)
+(defun rp/deoutlook (str &optional from to)
   "Translate outlook special characters in pasted text.
 
 When called interactively, work on current paragraph or text selection.

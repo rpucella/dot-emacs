@@ -129,7 +129,22 @@
 
 ;; Cannot put this in markdown-mode-hook, since needs to be set before
 ;; mode starts.
+(require 'markdown-mode)
 (setq-default markdown-hide-markup t)
+;; Fix markdown mode hrs (may be version dependent)
+(defvar markdown-width-adjustment 10)
+(defun markdown-fontify-hrs (last)
+  "Add text properties to horizontal rules from point to LAST."
+  (when (markdown-match-hr last)
+    (let ((hr-char (markdown--first-displayable markdown-hr-display-char)))
+      (add-text-properties
+       (match-beginning 0) (match-end 0)
+       `(face markdown-hr-face
+              font-lock-multiline t
+              ,@(when (and markdown-hide-markup hr-char)
+                  `(display ,(make-string
+                              (- (window-body-width) markdown-width-adjustment) hr-char)))))
+      t)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
