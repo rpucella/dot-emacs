@@ -1,6 +1,11 @@
 
 (require 'subr-x)
 
+;; TODO: Some thoughts on references/archives
+;;
+;; Make zweirn-folder buffer local
+
+
 (define-derived-mode zweirn-mode
   special-mode "Zweirn"
   "Major mode for showing quick notes.")
@@ -20,7 +25,10 @@
 (define-key zweirn-mode-map (kbd "s") 'zweirn-search)
 (define-key zweirn-mode-map (kbd "l") 'zweirn-linked-notes)
 (define-key zweirn-mode-map (kbd "a") 'zweirn-archive-note)
-(define-key zweirn-mode-map (kbd "A") 'zweirn-open-archive-dired)
+;;(define-key zweirn-mode-map (kbd "A") 'zweirn-open-archive-dired)
+(define-key zweirn-mode-map (kbd "A") 'zweirn-open-archive)
+(define-key zweirn-mode-map (kbd "r") 'zweirn-reference-note)
+(define-key zweirn-mode-map (kbd "R") 'zweirn-open-reference)
 
 ;; MODE PARAMETERS
 
@@ -28,17 +36,22 @@
   (concat (file-name-as-directory (getenv "HOME")) ".notes"))
 
 (defvar zweirn-archive-folder
-  (concat (file-name-as-directory (getenv "HOME")) (file-name-as-directory ".notes") "archive"))
+  (concat (file-name-as-directory zweirn-folder) "archive"))
+
+(defvar zweirn-reference-folder
+  (concat (file-name-as-directory zweirn-folder) "reference"))
 
 (defvar zweirn-export-folder
   (concat (file-name-as-directory (getenv "HOME")) "Desktop"))
 
-
 (defun zweirn--create-notes-folder-if-needed ()
   "Create notes folder if it doesn't exist."
   (unless (file-exists-p zweirn-folder)
-    (make-directory zweirn-folder)
-    (make-directory zweird-archive-folder)))
+    (make-directory zweirn-folder))
+  (unless (file-exists-p zweirn-archive-folder)
+    (make-directory zweirn-archive-folder))
+  (unless (file-exists-p zweirn-reference-folder)
+    (make-directory zweirn-reference-folder)))
 
 (defun zweirn--untitled ()
   (format-time-string "%m/%d/%y %H:%M"))
@@ -46,19 +59,20 @@
 (defun zweirn-create-note ()
   "Create a 'permanent' note in $HOME/.notes"
   (interactive)
-  (zweirn--create-notes-folder-if-needed)
-  (let* ((uuid (rp/generate-random-uuid))
-         (new-file (concat (file-name-as-directory zweirn-folder) (concat uuid ".md")))
-         (buff (get-file-buffer new-file)))
-    ;; TODO: if the file/buffer already exists, don't insert the # Note thing.
-    ;; Also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
-    (if (null buff)
-        (progn (switch-to-buffer (find-file-noselect new-file))
-               (insert "# Note ")
-               (insert (zweirn--untitled))
-               (newline)
-               (newline))
-      (switch-to-buffer buff))))
+  (unless zweirn--is-stable
+    (zweirn--create-notes-folder-if-needed)
+    (let* ((uuid (rp/generate-random-uuid))
+           (new-file (concat (file-name-as-directory zweirn-folder) (concat uuid ".md")))
+           (buff (get-file-buffer new-file)))
+      ;; TODO: if the file/buffer already exists, don't insert the # Note thing.
+      ;; Also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
+      (if (null buff)
+          (progn (switch-to-buffer (find-file-noselect new-file))
+                 (insert "# Note ")
+                 (insert (zweirn--untitled))
+                 (newline)
+                 (newline))
+        (switch-to-buffer buff)))))
 
 (defun zweirn--read-first-lines (file n)
   "Return first N lines of FILE."
@@ -127,6 +141,9 @@
 (defun zweirn--archive-path (n)
   (concat (file-name-as-directory zweirn-archive-folder) n))
 
+(defun zweirn--reference-path (n)
+  (concat (file-name-as-directory zweirn-reference-folder) n))
+
 (defun zweirn--clean-title (str)
   ;; mostly from https://github.com/kaushalmodi/ox-hugo/blob/e42a824c3253e127fc8b86a5370c8d5b96a45166/ox-hugo.el#L1816-L1886
   (let* (;; Convert to lowercase.
@@ -174,6 +191,18 @@
           (zweirn--show))
       (message "Cursor not over a note"))))
 
+(defun zweirn-reference-note ()
+  "Move the note to reference folder"
+    (interactive)
+  (let ((nt (zweirn--current-name)))
+    (if nt
+        (let* ((title (zweirn--note-title nt))
+               (name (format "%s.md" (zweirn--clean-title title)))
+               (name (read-string (format "Reference name (%s): " name) nil nil name)))
+          (rename-file (zweirn--note-path nt) (zweirn--reference-path name))
+          (zweirn--show))
+      (message "Cursor not over a note"))))
+
 (defun zweirn--note-title (nt)
   (let ((line (zweirn--read-first-non-empty-line
                (concat (file-name-as-directory zweirn-folder) nt))))
@@ -216,6 +245,21 @@
   (interactive)
   (dired zweirn-archive-folder))
 
+(defun zweirn-open-reference-dired ()
+  "Open dired in the reference folder"
+  (interactive)
+  (dired zweirn-reference-folder))
+
+(defun zweirn-open-archive ()
+  "Open archive folder"
+  (interactive)
+  (zweirn zweirn-archive-folder t))
+
+(defun zweirn-open-reference ()
+  "Open reference folder"
+  (interactive)
+  (zweirn zweirn-reference-folder t))
+
 (defun zweirn-kill ()
   "Kill current buffer without asking anything"
   (interactive)
@@ -249,11 +293,13 @@
   (interactive)
   (zweirn--show))
 
-(defun zweirn (path)
+(defun zweirn (path &optional stable)
   "Show list of notes in $HOME/.notes"
   (interactive (list (if current-prefix-arg
                          (read-directory-name "Notes directory: ")
                        nil)))
+  ;; A stable folder is a non-current notes folder (archive, reference, etc).
+  ;; It does not support creating new notes, and sorts alphabetically.
   (let* ((folder (or path zweirn-folder))
          (name (concat "*Zweirn* " (file-name-as-directory folder)))
          (buff (get-buffer-create name)))
@@ -261,11 +307,17 @@
     (zweirn-mode)
     (make-local-variable 'zweirn-folder)
     (setq zweirn-folder folder)
+    (make-local-variable 'zweirn--is-stable)
+    (setq zweirn--is-stable stable)
     (zweirn--create-notes-folder-if-needed)
     (zweirn--show)))
     
 (defun zweirn--show ()
   (let* ((existing-notes (zweirn--notes-by-update-time))
+         ;; Sort alphabetically in the "stable folder" case.
+         (existing-notes (if zweirn--is-stable
+                             (sort existing-notes (lambda (x y) (string-lessp x y)))
+                           existing-notes))
          (notes existing-notes)
          (inhibit-read-only t))
     (erase-buffer)

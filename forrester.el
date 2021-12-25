@@ -1,4 +1,8 @@
-    
+
+;; TODO: coalesce into a single command:
+;;
+;;   (run-python-cli)
+
 ;; fbncc
 
 (defun fbncc ()
@@ -25,7 +29,8 @@
   "Run Muck in a comint buffer"
   (interactive)
   (require 'comint)
-  (let* ((muck-program "~/git/dwh-manager/muck.bat")
+
+  (let* ((muck-program "~/git/dwh-manager/muck.sh")
          (muck-path "~/git/dwh-manager")
          (buffer (get-buffer-create "*muck*")))
     (pop-to-buffer-same-window buffer)
