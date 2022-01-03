@@ -1,9 +1,10 @@
 
 (require 'subr-x)
 
-;; TODO: Some thoughts on references/archives
-;;
-;; Make zweirn-folder buffer local
+;; TODO:
+;; Add .trash folder for deleted notes
+;; Allow search mode to jump to notes
+;; Search over archives and references too
 
 
 (define-derived-mode zweirn-mode
