@@ -1,6 +1,12 @@
 
 (require 'subr-x)
 
+;; TODO:
+;; Add .trash folder for deleted notes
+;; Allow search mode to jump to notes
+;; Search over archives and references too
+
+
 (define-derived-mode zweirn-mode
   special-mode "Zweirn"
   "Major mode for showing quick notes.")
