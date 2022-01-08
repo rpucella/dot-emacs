@@ -68,3 +68,19 @@ If STRIN is nil, change the text in the region between positions FROM and TO."
           (goto-char $from)
           (insert outputStr))))))
 
+
+(defun rp/copy-file-path ()
+  "Copy buffer's file path to kill ring."
+  (interactive)
+  (when buffer-file-name
+    (kill-new (file-truename buffer-file-name))))
+
+
+(defun rp/pdf-markdown ()
+  (interactive)
+  (let* ((pdf (make-temp-file "output" nil ".pdf"))
+         (url "http://c.docverter.com/convert")
+         (input (file-truename buffer-file-name)))
+    (shell-command (format "curl %s -s -F from=markdown -F to=pdf -F 'input_files[]=@%s' > %s" url input pdf))
+    (shell-command (format "open %s" pdf))))
+

@@ -44,7 +44,7 @@
  '(custom-safe-themes
    '("08765d801b06462a3ce7e414cdb747436ccaf0c073350be201d8f87bd0481435" default))
  '(package-selected-packages
-   '(paredit org-roam org-bullets ssh magit restclient ws-butler green-phosphor-theme green-is-the-new-black-theme dracula-theme go-mode web-mode markdown-mode)))
+   '(fireplace paredit org-roam org-bullets ssh magit restclient ws-butler green-phosphor-theme green-is-the-new-black-theme dracula-theme go-mode web-mode markdown-mode)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -168,3 +168,31 @@
 ;; override with local settings
 (if (file-readable-p (concat-emacs-folder "local.el"))
     (load-library (concat-emacs-folder "local.el")))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Word count minor mode
+;;
+;; From: https://www.dr-qubit.org/emacs-misc/wc-mode.el
+
+(setq mode-line-position (assq-delete-all 'wc-mode mode-line-position))
+
+(setq mode-line-position
+      (append
+       mode-line-position
+       '((wc-mode
+	  (6 (:eval (if (use-region-p)
+				(count-words-region (point) (mark))
+		      (format " [%dw]"
+			      (count-words-region (point-min) (point-max))))))
+	  nil))))
+
+(define-minor-mode wc-mode
+  "Toggle word-count mode.
+With no argument, this command toggles the mode.
+A non-null prefix argument turns the mode on.
+A null prefix argument turns it off.
+
+When enabled, the total number of characters, words, and lines is
+displayed in the mode-line.")
