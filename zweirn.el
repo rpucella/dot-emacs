@@ -33,6 +33,7 @@
 (define-key zweirn-mode-map (kbd "s") 'zweirn-search)
 
 (define-key zweirn-mode-map (kbd "D") 'zweirn-open-dired)
+;;(define-key zweirn-mode-map (kbd "P") 'zweirn-open-pdf)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -81,7 +82,9 @@
 
 (defun zweirn--open-note-in-markdown (fname)
   (switch-to-buffer (find-file-noselect fname))
-  (if (fboundp 'markdown-mode) (markdown-mode)))
+  (if (fboundp 'markdown-mode) (markdown-mode))
+  (if (fboundp 'wc-mode) (wc-mode))
+  (if (fboundp 'auto-fill-mode) (auto-fill-mode)))
 
 
 (defun zweirn--read-first-lines (file n)
