@@ -1,6 +1,44 @@
 (require 'subr-x)
 
+(defvar rp/powershell-random-uuid "powershell.exe -Command [guid]::NewGuid().toString()")
+
 (defvar rp/default-embiggen-size 12)
+
+;; From http://ergoemacs.org/emacs/elisp_generate_uuid.html
+(defun rp/random-uuid ()
+  "Insert a UUID - calls “uuidgen” on MacOS, Linux, and PowelShell on Microsoft Windows."
+  (interactive)
+  (insert
+   (cond
+    ((string-equal system-type "windows-nt")
+     (string-trim (shell-command-to-string rp/powershell-random-uuid)))
+    ((string-equal system-type "darwin") ; Mac
+     (string-trim (shell-command-to-string "uuidgen")))
+    ((string-equal system-type "gnu/linux")
+     (string-trim (shell-command-to-string "uuidgen")))
+    (t
+     ;; Code here by Christopher Wellons, 2011-11-18.
+     ;; Editted Hideki Saito further to generate all valid variants
+     ;; for "N" in xxxxxxxx-xxxx-Mxxx-Nxxx-xxxxxxxxxxxx format.
+     (let* ((myStr (md5 (format "%s%s%s%s%s%s%s%s%s%s"
+                                (user-uid)
+                                (emacs-pid)
+                                (system-name)
+                                (user-full-name)
+                                (current-time)
+                                (emacs-uptime)
+                                (garbage-collect)
+                                (buffer-string)
+                                (random)
+                                (recent-keys)))))
+       (format "%s-%s-4%s-%s%s-%s"
+               (substring myStr 0 8)
+               (substring myStr 8 12)
+               (substring myStr 13 16)
+               (format "%x" (+ 8 (random 4)))
+               (substring myStr 17 20)
+               (substring myStr 20 32)))))))
+
 
 (defun rp/toggle-fullscreen ()
   "Toggle full/maximal screen"
@@ -28,11 +66,6 @@
   (set-face-attribute 'default nil :height (* size 10)))
 
 
-(defun rp/random-uuid ()
-  (interactive)
-  (insert (rp/generate-random-uuid)))
-
-
 (defun rp/cheat-sheet ()
   (interactive)
   (switch-to-buffer (find-file-noselect (concat-emacs-folder "cheat-sheet.org"))))
@@ -50,7 +83,7 @@
 When called interactively, work on current paragraph or text selection.
 
 When called in lisp code, if STRING is non-nil, returns a changed string.
-If STRIN is nil, change the text in the region between positions FROM and TO."
+If STRING is nil, change the text in the region between positions FROM and TO."
   (interactive
    (if (use-region-p)
        (list nil (region-beginning) (region-end))
@@ -76,11 +109,21 @@ If STRIN is nil, change the text in the region between positions FROM and TO."
     (kill-new (file-truename buffer-file-name))))
 
 
-(defun rp/pdf-markdown ()
-  (interactive)
-  (let* ((pdf (make-temp-file "output" nil ".pdf"))
-         (url "http://c.docverter.com/convert")
-         (input (file-truename buffer-file-name)))
-    (shell-command (format "curl %s -s -F from=markdown -F to=pdf -F 'input_files[]=@%s' > %s" url input pdf))
-    (shell-command (format "open %s" pdf))))
+(defvar rp/pdf-convert-markdown "curl http://c.docverter.com/convert -s -F from=markdown -F to=pdf -F 'input_files[]=@%s' > %s")
 
+(defvar rp/pdf-open "open %s")
+
+(defun rp/pdf-markdown (input-file)
+  (interactive (list (file-truename buffer-file-name)))
+  (let* ((pdf (make-temp-file "output" nil ".pdf")))
+    (shell-command (format rp/pdf-convert-markdown input-file pdf))
+    (shell-command (format rp/pdf-open pdf))))
+
+
+(defun rp/unfill-region (beg end)
+  "Unfill the region, joining text paragraphs into a single
+    logical line.  This is useful, e.g., for use with
+    `visual-line-mode'."
+  (interactive "*r")
+  (let ((fill-column (point-max)))
+    (fill-region beg end)))

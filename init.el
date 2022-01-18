@@ -26,7 +26,6 @@
   (let ((emacs-folder (concat (file-name-as-directory (getenv "HOME")) ".emacs.d")))
     (concat (file-name-as-directory emacs-folder) fname)))
 
-(load-library (concat-emacs-folder "functions.el"))
 (load-library (concat-emacs-folder "commands.el"))
 (load-library (concat-emacs-folder "zweirn.el"))
 
