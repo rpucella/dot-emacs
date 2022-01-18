@@ -9,7 +9,7 @@
   "Run FBNCC in a comint buffer"
   (interactive)
   (require 'comint)
-  (let* ((program "~/git/knowledge-transfer/fbncc/fbncc.bat")
+  (let* ((program "~/git/knowledge-transfer/fbncc/fbncc.sh")
          (path "~/git/knowledge-transfer/fbncc")
          (buffer (get-buffer-create "*fbncc*")))
     (pop-to-buffer-same-window buffer)
