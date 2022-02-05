@@ -142,6 +142,7 @@ If STRING is nil, change the text in the region between positions FROM and TO."
       (setenv "PYTHONIOENCODING" "utf-8")
       (setenv "PYTHONUNBUFFERED" "true")
       (cd path)
+      ;; TODO: allow passing parameters to program
       (make-comint-in-buffer "muck" buffer program)
       (set-buffer-process-coding-system 'utf-8 'utf-8))))
 
