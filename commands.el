@@ -137,3 +137,22 @@ If STRING is nil, change the text in the region between positions FROM and TO."
                   (equal name "*scratch*"))
         (kill-buffer buff))))
   (delete-other-windows))
+
+
+(defun rp/python3-cli (program path buf-name)
+  "Run command in a comint buffer"
+  (interactive (let* ((program (read-file-name "Command: "))
+                      (path (read-directory-name "Working directory: "))
+                      (buf-name program))
+                 (list program path buf-name)))
+  (require 'comint)
+  (let* ((buffer (get-buffer-create (format "*%s*" buf-name))))
+    (pop-to-buffer-same-window buffer)
+    ;; create the comint process if there is no process in buffer
+    (unless (comint-check-proc buf-name)
+      (setenv "PYTHONIOENCODING" "utf-8")
+      (setenv "PYTHONUNBUFFERED" "true")
+      (cd path)
+      ;; TODO: allow passing parameters to program
+      (make-comint-in-buffer buf-name buffer program)
+      (set-buffer-process-coding-system 'utf-8 'utf-8))))
