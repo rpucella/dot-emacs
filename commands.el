@@ -121,9 +121,19 @@ If STRING is nil, change the text in the region between positions FROM and TO."
 
 
 (defun rp/unfill-region (beg end)
-  "Unfill the region, joining text paragraphs into a single
-    logical line.  This is useful, e.g., for use with
-    `visual-line-mode'."
+  "Unfill the region, joining text paragraphs into a single logical line."
   (interactive "*r")
   (let ((fill-column (point-max)))
     (fill-region beg end)))
+
+
+(defun rp/clean-emacs ()
+  "Kill all buffers except *scratch*."
+  (interactive)
+  ;; TODO: Implement an exclusion list.
+  (dolist (buff (buffer-list))
+    (let ((name (buffer-name buff)))
+      (unless (or (equal ?\s (aref name 0))
+                  (equal name "*scratch*"))
+        (kill-buffer buff))))
+  (delete-other-windows))
