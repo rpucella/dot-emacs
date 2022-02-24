@@ -43,7 +43,7 @@
  '(custom-safe-themes
    '("08765d801b06462a3ce7e414cdb747436ccaf0c073350be201d8f87bd0481435" default))
  '(package-selected-packages
-   '(fireplace paredit org-roam org-bullets ssh magit restclient ws-butler green-phosphor-theme green-is-the-new-black-theme dracula-theme go-mode web-mode markdown-mode)))
+   '(tuareg fireplace paredit org-roam org-bullets ssh magit restclient ws-butler green-phosphor-theme green-is-the-new-black-theme dracula-theme go-mode web-mode markdown-mode)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

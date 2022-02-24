@@ -330,25 +330,48 @@
 ;;
 ;; EXPORTED FUNCTIONS.
 
+;; Most of those functions must be called from within a Zweirn folder.
+;; Maybe we should protect them with ensure-zweirn-mode which might use
+;;   (buffer-local-value 'major-mode (get-buffer "*scratch*"))
+
+(defun zweirn-zweirn-buffer-p ()
+  (eq major-mode 'zweirn-mode))
+
 (defun zweirn-create-note ()
   "Create a 'permanent' note in $HOME/.notes"
   (interactive)
-  (unless zweirn--is-stable
-    (zweirn--create-notes-folder-if-needed)
-    (let* ((uuid (zweirn--random-uuid))
-           (new-file (concat (file-name-as-directory zweirn--folder) (concat uuid "." zweirn-default-extension)))
-           (buff (get-file-buffer new-file)))
-      ;; TODO: if the file/buffer already exists, don't insert the # Note thing.
-      ;; Also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
-      (if (null buff)
-          (progn (zweirn--open-note-in-markdown new-file)
-                 (newline)
-                 (insert "# Note ")
-                 (insert (zweirn--untitled))
-                 (newline)
-                 (newline))
-        (switch-to-buffer buff)))))
-
+  (if (zweirn-zweirn-buffer-p)
+      (unless zweirn--is-stable
+        (zweirn--create-notes-folder-if-needed)
+        (let* ((uuid (zweirn--random-uuid))
+               (new-file (concat (file-name-as-directory zweirn--folder) (concat uuid "." zweirn-default-extension)))
+               (buff (get-file-buffer new-file)))
+          ;; TODO: if the file/buffer already exists, don't insert the # Note thing.
+          ;; Also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
+          (if (null buff)
+              (progn (zweirn--open-note-in-markdown new-file)
+                     (newline)
+                     (insert "# Note ")
+                     (insert (zweirn--untitled))
+                     (newline)
+                     (newline))
+            (switch-to-buffer buff))))
+    (let ((zweirn--is-stable t)
+          (zweirn--folder zweirn-root-folder))
+      (zweirn--create-notes-folder-if-needed)
+      (let* ((uuid (zweirn--random-uuid))
+             (new-file (concat (file-name-as-directory zweirn--folder) (concat uuid "." zweirn-default-extension)))
+             (buff (get-file-buffer new-file)))
+        ;; TODO: if the file/buffer already exists, don't insert the # Note thing.
+        ;; Also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
+        (if (null buff)
+            (progn (zweirn--open-note-in-markdown new-file)
+                   (newline)
+                   (insert "# Note ")
+                   (insert (zweirn--untitled))
+                   (newline)
+                   (newline))
+          (switch-to-buffer buff))))))
 
 (defun zweirn-show-name ()
   "Show the name of the file containing the number on the current line."
@@ -489,7 +512,7 @@
                        nil)))
   ;; A stable folder is a non-current notes folder (archive, reference, etc).
   ;; It does not support creating new notes, and sorts alphabetically.
-  (let* ((folder (or path zweirn--folder))
+  (let* ((folder (or path zweirn-root-folder))
          (name (concat "*Zweirn* " (file-name-as-directory folder)))
          (buff (get-buffer-create name)))
     (switch-to-buffer buff)
