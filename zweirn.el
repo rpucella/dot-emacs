@@ -208,8 +208,11 @@
   (concat (file-name-as-directory zweirn-export-folder) n))
 
 
-(defun zweirn--subfolder-path (subfolder n)
+(defun zweirn--subfolder-note-path (subfolder n)
   (concat (file-name-as-directory subfolder) n))
+
+(defun zweirn--subfolder-path (name)
+  (concat (file-name-as-directory zweirn-root-folder) name))
 
 
 (defun zweirn--clean-title (str)
@@ -252,7 +255,7 @@
       (format "[ %s ]" nt))))
 
 
-(defun zweirn--notes-by-update-time ()
+(defun zweirn--notes-by-update-time (path)
   (let* ((filter (rx string-start
                      alnum
                      (zero-or-more (or
@@ -261,7 +264,7 @@
                      (? "]")
                      (or ".txt" ".md")
                      string-end))   ;; any file *.txt|md without two ]] in the name
-         (notes (directory-files-and-attributes (directory-file-name zweirn--folder) nil filter t))
+         (notes (directory-files-and-attributes (directory-file-name path) nil filter t))
          (notes (sort notes (lambda (x y) (time-less-p (nth 6 y) (nth 6 x))))))
     (mapcar #'car notes)))
 
@@ -291,7 +294,7 @@
     (append (mapcar #'car pinned) (mapcar #'car not-pinned))))
 
 (defun zweirn--show ()
-  (let* ((existing-notes (zweirn--notes-by-update-time))
+  (let* ((existing-notes (zweirn--notes-by-update-time zweirn--folder))
          ;; Sort alphabetically in the "stable folder" case.
          (existing-notes (if zweirn--is-stable
                              (zweirn--sort-by-title existing-notes)
@@ -349,7 +352,7 @@
 
 
 (defun zweirn--find-linking-notes (nt)
-  (let* ((notes (zweirn--notes-by-update-time))
+  (let* ((notes (zweirn--notes-by-update-time zweirn--folder))
          (title (zweirn--note-title nt))
          (name (concat "*Zweirn Linked: " title "*"))
          (buff (get-buffer-create name)))
@@ -510,9 +513,9 @@
                (name (format "%s.%s" (zweirn--clean-title title) zweirn-default-extension))
                (target (zweirn--query-subfolder "Move to"))
                (target-subfolder (caddr target))
-               (target-path (concat (file-name-as-directory zweirn-root-folder) (cadr target)))
+               (target-path (zweirn--subfolder-path (cadr target)))
                (name (read-string (format "Name (%s): " name target-path) nil nil name)))
-          (rename-file (zweirn--note-path nt) (zweirn--subfolder-path target-path name))
+          (rename-file (zweirn--note-path nt) (zweirn--subfolder-note-path target-path name))
           (zweirn--show))
       (message "Cursor not over a note"))))
 
@@ -576,7 +579,7 @@
   "Open subfolder"
   (interactive)
   (let* ((target (zweirn--query-subfolder "Open"))
-         (target-path (concat (file-name-as-directory zweirn-root-folder) (cadr target))))
+         (target-path (zweirn--subfolder-path (cadr target))))
     (zweirn target-path t)))
 
 
@@ -613,30 +616,31 @@
 
 (defun zweirn-nv-search ()
   (interactive)
-  (let* ((notes (zweirn--notes-by-update-time))
+  (let* ((notes (zweirn--notes-by-update-time zweirn-root-folder))
          (notes (zweirn--sort-by-title notes))
          (name "*Zweirn-NV*")
          (buff (get-buffer-create name)))
-    ;; refresh the page by grabbing all titles, recursively
-    ;; setup the mode of the page
-    ;; create the dedicated mode map
     (switch-to-buffer buff)
     (zweirn-nv-mode)
-    ;; This needs to be done after switching the mode.
+    ; Switching major mode clears the local variables.
     (make-local-variable 'zweirn-nv--search-string)
     (setq zweirn-nv--search-string "")
     (make-local-variable 'zweirn-nv--notes)
     (setq zweirn-nv--notes notes)
+    (make-local-variable 'zweirn-nv--subfolder-notes)
+    (setq zweirn-nv--subfolder-notes '())
+    (dolist (target zweirn-subfolders)
+      (let ((zweirn--folder (zweirn--subfolder-path (cadr target))))
+        (let* ((notes (zweirn--notes-by-update-time zweirn--folder))
+               (notes (zweirn--sort-by-title notes)))
+          (setq zweirn-nv--subfolder-notes (cons (list (cadr target) notes) zweirn-nv--subfolder-notes)))))
     (zweirn--show-nv-search)))
 
 (defun zweirn--show-nv-search ()
   (let ((inhibit-read-only t))
     (erase-buffer)
-    (insert "SEARCH: ")
+    (insert "==> ")
     (insert zweirn-nv--search-string)
-    (newline)
-    (newline)
-    (insert (file-name-as-directory zweirn--folder))
     (newline)
     (newline)
     (let ((seen-one nil))
@@ -647,11 +651,31 @@
             (insert title)
             (newline)
             (setq seen-one t))))
+      (dolist (subf-notes zweirn-nv--subfolder-notes)
+        (let ((zweirn--folder (zweirn--subfolder-path (car subf-notes))))
+          (let ((seen-one-here (zweirn-nv--show-subfolder-notes (car subf-notes) (cadr subf-notes))))
+            (setq seen-one (or seen-one seen-one-here)))))
       (goto-char (point-min))
       (if seen-one
           (zweirn-move-next-note)
         (goto-char (point-max))))))
 
+(defun zweirn-nv--show-subfolder-notes (name notes)
+  (let ((seen-one nil))
+    (dolist (nt notes)
+      (let ((title (zweirn--note-title nt)))
+        (when (string-match-p (regexp-quote zweirn-nv--search-string) (downcase title))
+          (unless seen-one
+            (newline)
+            (insert name)
+            (newline)
+            (newline))
+          (insert "*" (propertize (concat "[[" nt "]]") 'invisible t) "  ")
+          (insert title)
+          (newline)
+          (setq seen-one t))))
+    seen-one))
+      
 (defun zweirn--add-to-search (str)
   (setq zweirn-nv--search-string (concat zweirn-nv--search-string str))
   (zweirn--show-nv-search))
@@ -662,11 +686,10 @@
       (setq zweirn-nv--search-string (substring zweirn-nv--search-string 0 (- len 1)))
       (zweirn--show-nv-search))))
 
-   
 (defun zweirn-search (s)
   ;; TODO: We probably need a dedicated mode for this to navigate results.
   (interactive (list (read-string "Search string: ")))
-  (let* ((notes (zweirn--notes-by-update-time))
+  (let* ((notes (zweirn--notes-by-update-time zweirn--folder))
          (name (concat "*Zweirn-search* " s))
          (buff (get-buffer-create name))
          (seen nil)
