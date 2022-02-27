@@ -8,14 +8,13 @@
 ;; Search over archives and references too
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; ZWEIRN MODE.
+
 (define-derived-mode zweirn-mode
   special-mode "Zweirn"
   "Major mode for showing quick notes.")
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;; KEY BINDINGS.
 
 (define-key zweirn-mode-map (kbd "RET") 'zweirn-read-note)
 (define-key zweirn-mode-map (kbd "TAB") 'zweirn-move-next-note)
@@ -33,10 +32,68 @@
 (define-key zweirn-mode-map (kbd "p") 'zweirn-move-prev-note)
 (define-key zweirn-mode-map (kbd "q") 'zweirn-kill)
 (define-key zweirn-mode-map (kbd "s") 'zweirn-search)
+(define-key zweirn-mode-map (kbd "/") 'zweirn-nv-search)
 
 (define-key zweirn-mode-map (kbd "D") 'zweirn-open-dired)
 (define-key zweirn-mode-map (kbd "P") 'zweirn-pdf-note)
 ;;(define-key zweirn-mode-map (kbd "P") 'zweirn-open-pdf)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; ZWEIRN-NV MODE.
+
+(define-derived-mode zweirn-nv-mode
+  special-mode "Zweirn-NV"
+  "Major mode for searching Zweirn notes.")
+
+(define-key zweirn-nv-mode-map (kbd "RET") 'zweirn-nv-read-note)
+(define-key zweirn-nv-mode-map (kbd "TAB") 'zweirn-move-next-note)
+(define-key zweirn-nv-mode-map (kbd "<backtab>") 'zweirn-move-prev-note)
+
+(define-key zweirn-nv-mode-map (kbd "a") (lambda () (interactive) (zweirn--add-to-search "a")))
+(define-key zweirn-nv-mode-map (kbd "b") (lambda () (interactive) (zweirn--add-to-search "b")))
+(define-key zweirn-nv-mode-map (kbd "c") (lambda () (interactive) (zweirn--add-to-search "c")))
+(define-key zweirn-nv-mode-map (kbd "d") (lambda () (interactive) (zweirn--add-to-search "d")))
+(define-key zweirn-nv-mode-map (kbd "e") (lambda () (interactive) (zweirn--add-to-search "e")))
+(define-key zweirn-nv-mode-map (kbd "f") (lambda () (interactive) (zweirn--add-to-search "f")))
+(define-key zweirn-nv-mode-map (kbd "g") (lambda () (interactive) (zweirn--add-to-search "g")))
+(define-key zweirn-nv-mode-map (kbd "h") (lambda () (interactive) (zweirn--add-to-search "h")))
+(define-key zweirn-nv-mode-map (kbd "i") (lambda () (interactive) (zweirn--add-to-search "i")))
+(define-key zweirn-nv-mode-map (kbd "j") (lambda () (interactive) (zweirn--add-to-search "j")))
+(define-key zweirn-nv-mode-map (kbd "k") (lambda () (interactive) (zweirn--add-to-search "k")))
+(define-key zweirn-nv-mode-map (kbd "l") (lambda () (interactive) (zweirn--add-to-search "l")))
+(define-key zweirn-nv-mode-map (kbd "m") (lambda () (interactive) (zweirn--add-to-search "m")))
+(define-key zweirn-nv-mode-map (kbd "n") (lambda () (interactive) (zweirn--add-to-search "n")))
+(define-key zweirn-nv-mode-map (kbd "o") (lambda () (interactive) (zweirn--add-to-search "o")))
+(define-key zweirn-nv-mode-map (kbd "p") (lambda () (interactive) (zweirn--add-to-search "p")))
+(define-key zweirn-nv-mode-map (kbd "q") (lambda () (interactive) (zweirn--add-to-search "q")))
+(define-key zweirn-nv-mode-map (kbd "r") (lambda () (interactive) (zweirn--add-to-search "r")))
+(define-key zweirn-nv-mode-map (kbd "s") (lambda () (interactive) (zweirn--add-to-search "s")))
+(define-key zweirn-nv-mode-map (kbd "t") (lambda () (interactive) (zweirn--add-to-search "t")))
+(define-key zweirn-nv-mode-map (kbd "u") (lambda () (interactive) (zweirn--add-to-search "u")))
+(define-key zweirn-nv-mode-map (kbd "v") (lambda () (interactive) (zweirn--add-to-search "v")))
+(define-key zweirn-nv-mode-map (kbd "w") (lambda () (interactive) (zweirn--add-to-search "w")))
+(define-key zweirn-nv-mode-map (kbd "x") (lambda () (interactive) (zweirn--add-to-search "x")))
+(define-key zweirn-nv-mode-map (kbd "y") (lambda () (interactive) (zweirn--add-to-search "y")))
+(define-key zweirn-nv-mode-map (kbd "z") (lambda () (interactive) (zweirn--add-to-search "z")))
+(define-key zweirn-nv-mode-map (kbd "0") (lambda () (interactive) (zweirn--add-to-search "0")))
+(define-key zweirn-nv-mode-map (kbd "1") (lambda () (interactive) (zweirn--add-to-search "1")))
+(define-key zweirn-nv-mode-map (kbd "2") (lambda () (interactive) (zweirn--add-to-search "2")))
+(define-key zweirn-nv-mode-map (kbd "3") (lambda () (interactive) (zweirn--add-to-search "3")))
+(define-key zweirn-nv-mode-map (kbd "4") (lambda () (interactive) (zweirn--add-to-search "4")))
+(define-key zweirn-nv-mode-map (kbd "5") (lambda () (interactive) (zweirn--add-to-search "5")))
+(define-key zweirn-nv-mode-map (kbd "6") (lambda () (interactive) (zweirn--add-to-search "6")))
+(define-key zweirn-nv-mode-map (kbd "7") (lambda () (interactive) (zweirn--add-to-search "7")))
+(define-key zweirn-nv-mode-map (kbd "8") (lambda () (interactive) (zweirn--add-to-search "8")))
+(define-key zweirn-nv-mode-map (kbd "9") (lambda () (interactive) (zweirn--add-to-search "9")))
+(define-key zweirn-nv-mode-map (kbd ".") (lambda () (interactive) (zweirn--add-to-search ".")))
+(define-key zweirn-nv-mode-map (kbd ";") (lambda () (interactive) (zweirn--add-to-search ";")))
+(define-key zweirn-nv-mode-map (kbd ",") (lambda () (interactive) (zweirn--add-to-search ",")))
+(define-key zweirn-nv-mode-map (kbd "-") (lambda () (interactive) (zweirn--add-to-search "-")))
+(define-key zweirn-nv-mode-map (kbd "/") (lambda () (interactive) (zweirn--add-to-search "/")))
+(define-key zweirn-nv-mode-map (kbd "<backspace>") (lambda () (interactive) (zweirn--remove-last-from-search)))
+(define-key zweirn-nv-mode-map (kbd "C-g") 'zweirn-kill)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -208,19 +265,37 @@
          (notes (sort notes (lambda (x y) (time-less-p (nth 6 y) (nth 6 x))))))
     (mapcar #'car notes)))
 
+;; Can probably rationalize how to pull notes with titles.
+;;   Represent as a vector [note title]?
+;; More generally, make this kind of processing cleaner. This code is a mess.
 
 (defun zweirn--sort-by-title (notes)
   (let* ((notes-with-titles (mapcar (lambda (nt) (cons nt (zweirn--note-title nt))) notes))
          (sorted (sort notes-with-titles (lambda (x y) (string-lessp (cdr x) (cdr y))))))
     (mapcar #'car sorted)))
 
+(defun zweirn--is-pinned (title)
+    (and (string-prefix-p ">> " title) (string-suffix-p " <<" title)))
+
+(defun zweirn--pin-notes (notes)
+  ;; pull the notes with >> ... << at the front sorted by title
+  (let* ((notes-with-titles (mapcar (lambda (nt) (cons nt (zweirn--note-title nt))) notes))
+         (classified-notes (cl-loop for ntt in notes-with-titles
+                                    if (zweirn--is-pinned (cdr ntt))
+                                      collect ntt into pinned
+                                    else
+                                      collect ntt into not-pinned
+                                    finally return (cons pinned not-pinned)))
+         (pinned (sort (car classified-notes) (lambda (x y) (string-lessp (cdr x) (cdr y)))))
+         (not-pinned (cdr classified-notes)))
+    (append (mapcar #'car pinned) (mapcar #'car not-pinned))))
 
 (defun zweirn--show ()
   (let* ((existing-notes (zweirn--notes-by-update-time))
          ;; Sort alphabetically in the "stable folder" case.
          (existing-notes (if zweirn--is-stable
                              (zweirn--sort-by-title existing-notes)
-                           existing-notes))
+                           (zweirn--pin-notes existing-notes)))
          (notes existing-notes)
          (inhibit-read-only t))
     (erase-buffer)
@@ -232,7 +307,8 @@
         (insert "*" (propertize (concat "[[" nt "]]") 'invisible t) "  ")
         (insert title)
         (newline))))
-  (goto-char (point-min)))
+  (goto-char (point-min))
+  (zweirn-move-next-note))
 
 
 (defun zweirn--strip-header (s)
@@ -392,6 +468,16 @@
            (concat (file-name-as-directory zweirn--folder) nt)))
       (message "Cursor not over a note"))))
 
+(defun zweirn-nv-read-note ()
+  "Load the note pointed to by the point in a zweirn-nv buffer, killing the buffer in the process"
+  (interactive)
+  (let ((nt (zweirn--current-name)))
+    (if nt
+        (let ((file (concat (file-name-as-directory zweirn--folder) nt)))
+          (kill-buffer (current-buffer))
+          (zweirn--open-note-in-markdown file))
+      (message "Cursor not over a note"))))
+
 (defun zweirn-pdf-note ()
   "Convert the note pointed to by the point into PDF using function rp/pdf-markdown"
   (interactive)
@@ -523,8 +609,60 @@
     (setq zweirn--is-stable stable)
     (zweirn--create-notes-folder-if-needed)
     (zweirn--show)))
-    
 
+
+(defun zweirn-nv-search ()
+  (interactive)
+  (let* ((notes (zweirn--notes-by-update-time))
+         (notes (zweirn--sort-by-title notes))
+         (name "*Zweirn-NV*")
+         (buff (get-buffer-create name)))
+    ;; refresh the page by grabbing all titles, recursively
+    ;; setup the mode of the page
+    ;; create the dedicated mode map
+    (switch-to-buffer buff)
+    (zweirn-nv-mode)
+    ;; This needs to be done after switching the mode.
+    (make-local-variable 'zweirn-nv--search-string)
+    (setq zweirn-nv--search-string "")
+    (make-local-variable 'zweirn-nv--notes)
+    (setq zweirn-nv--notes notes)
+    (zweirn--show-nv-search)))
+
+(defun zweirn--show-nv-search ()
+  (let ((inhibit-read-only t))
+    (erase-buffer)
+    (insert "SEARCH: ")
+    (insert zweirn-nv--search-string)
+    (newline)
+    (newline)
+    (insert (file-name-as-directory zweirn--folder))
+    (newline)
+    (newline)
+    (let ((seen-one nil))
+      (dolist (nt zweirn-nv--notes)
+        (let ((title (zweirn--note-title nt)))
+          (when (string-match-p (regexp-quote zweirn-nv--search-string) (downcase title))
+            (insert "*" (propertize (concat "[[" nt "]]") 'invisible t) "  ")
+            (insert title)
+            (newline)
+            (setq seen-one t))))
+      (goto-char (point-min))
+      (if seen-one
+          (zweirn-move-next-note)
+        (goto-char (point-max))))))
+
+(defun zweirn--add-to-search (str)
+  (setq zweirn-nv--search-string (concat zweirn-nv--search-string str))
+  (zweirn--show-nv-search))
+
+(defun zweirn--remove-last-from-search ()
+  (let ((len (length zweirn-nv--search-string)))
+    (when (> len 0)
+      (setq zweirn-nv--search-string (substring zweirn-nv--search-string 0 (- len 1)))
+      (zweirn--show-nv-search))))
+
+   
 (defun zweirn-search (s)
   ;; TODO: We probably need a dedicated mode for this to navigate results.
   (interactive (list (read-string "Search string: ")))
