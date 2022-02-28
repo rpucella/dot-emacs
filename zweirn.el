@@ -663,14 +663,16 @@
 (defun zweirn-nv--show-subfolder-notes (name notes)
   (let ((seen-one nil))
     (dolist (nt notes)
-      (let ((title (zweirn--note-title nt)))
+      (let ((title (zweirn--note-title nt))
+            ; Put nt as subfolder/nt so that when we open the note it picks it up from the subfolder.
+            (path-nt (concat (file-name-as-directory name) nt)))
         (when (string-match-p (regexp-quote zweirn-nv--search-string) (downcase title))
           (unless seen-one
             (newline)
             (insert name)
             (newline)
             (newline))
-          (insert "*" (propertize (concat "[[" nt "]]") 'invisible t) "  ")
+          (insert "*" (propertize (concat "[[" path-nt "]]") 'invisible t) "  ")
           (insert title)
           (newline)
           (setq seen-one t))))
