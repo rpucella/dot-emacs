@@ -130,20 +130,19 @@
 ;; mode starts.
 (require 'markdown-mode)
 (setq-default markdown-hide-markup t)
-;; Fix markdown mode hrs (may be version dependent)
+;; Fix markdown mode hrs to shave off some width to allow for line numbers.
+;; Basically, wrap a dynamic letf around `markdown-fontify-hrs` which rebinds
+;; `window-body-width` to give you back the width of the window minus something.
+;; Cf:
+;;   https://www.reddit.com/r/emacs/comments/bjgajb/what_is_the_preferred_way_to_dynamically_add_and/
 (defvar markdown-width-adjustment 10)
-(defun markdown-fontify-hrs (last)
-  "Add text properties to horizontal rules from point to LAST."
-  (when (markdown-match-hr last)
-    (let ((hr-char (markdown--first-displayable markdown-hr-display-char)))
-      (add-text-properties
-       (match-beginning 0) (match-end 0)
-       `(face markdown-hr-face
-              font-lock-multiline t
-              ,@(when (and markdown-hide-markup hr-char)
-                  `(display ,(make-string
-                              (- (window-body-width) markdown-width-adjustment) hr-char)))))
-      t)))
+(advice-add 'markdown-fontify-hrs :around
+            (lambda (originalf last)
+              (let ((curr-width (window-body-width)))
+                
+                (cl-letf (((symbol-function 'window-body-width)
+                           (lambda () (- curr-width markdown-width-adjustment))))
+                  (funcall originalf last)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -1,11 +1,8 @@
 
 (require 'subr-x)
+(require 'markdown-mode)
 
 ;; Zweirn for Zweites Gehirn aka Second Brain
-
-;; TODO:
-;; Allow search mode to jump to notes
-;; Search over archives and references too
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -87,10 +84,16 @@
 (define-key zweirn-nv-mode-map (kbd "7") (lambda () (interactive) (zweirn--add-to-search "7")))
 (define-key zweirn-nv-mode-map (kbd "8") (lambda () (interactive) (zweirn--add-to-search "8")))
 (define-key zweirn-nv-mode-map (kbd "9") (lambda () (interactive) (zweirn--add-to-search "9")))
+(define-key zweirn-nv-mode-map (kbd "<SPC>") (lambda () (interactive) (zweirn--add-to-search " ")))
 (define-key zweirn-nv-mode-map (kbd ".") (lambda () (interactive) (zweirn--add-to-search ".")))
-(define-key zweirn-nv-mode-map (kbd ";") (lambda () (interactive) (zweirn--add-to-search ";")))
 (define-key zweirn-nv-mode-map (kbd ",") (lambda () (interactive) (zweirn--add-to-search ",")))
+(define-key zweirn-nv-mode-map (kbd ";") (lambda () (interactive) (zweirn--add-to-search ";")))
+(define-key zweirn-nv-mode-map (kbd ":") (lambda () (interactive) (zweirn--add-to-search ":")))
 (define-key zweirn-nv-mode-map (kbd "-") (lambda () (interactive) (zweirn--add-to-search "-")))
+(define-key zweirn-nv-mode-map (kbd "+") (lambda () (interactive) (zweirn--add-to-search "+")))
+(define-key zweirn-nv-mode-map (kbd "=") (lambda () (interactive) (zweirn--add-to-search "=")))
+(define-key zweirn-nv-mode-map (kbd "(") (lambda () (interactive) (zweirn--add-to-search "(")))
+(define-key zweirn-nv-mode-map (kbd ")") (lambda () (interactive) (zweirn--add-to-search ")")))
 (define-key zweirn-nv-mode-map (kbd "/") (lambda () (interactive) (zweirn--add-to-search "/")))
 (define-key zweirn-nv-mode-map (kbd "<backspace>") (lambda () (interactive) (zweirn--remove-last-from-search)))
 (define-key zweirn-nv-mode-map (kbd "C-g") 'zweirn-kill)
@@ -153,9 +156,9 @@
 
 (defun zweirn--open-note-in-markdown (fname)
   (switch-to-buffer (find-file-noselect fname))
-  (if (fboundp 'markdown-mode) (markdown-mode))
-  (if (fboundp 'wc-mode) (wc-mode))
-  (if (fboundp 'auto-fill-mode) (auto-fill-mode)))
+  (when (fboundp 'markdown-mode) (markdown-mode))
+  (when (fboundp 'wc-mode) (wc-mode))
+  (when (fboundp 'auto-fill-mode) (auto-fill-mode)))
 
 
 (defun zweirn--read-first-lines (file n)
@@ -613,28 +616,45 @@
     (zweirn--create-notes-folder-if-needed)
     (zweirn--show)))
 
+(add-hook 'markdown-mode-hook
+          ;; When we enter markdown-mode, modify it if it we haven't already.
+          (lambda ()
+            (unless (member "zweirn" markdown-uri-types)
+              ;; Add "zweirn:" as a URI type.
+              ;; Annoyingly, looks like we need to reload markdown-mode to enable this change. 
+              (add-to-list 'markdown-uri-types "zweirn")
+              (load-library "markdown-mode")
+              ;; Intercept markdown--browse-url to allow opening a zweirn URI.
+              (advice-add 'markdown--browse-url :around
+                          (lambda (originalf url)
+                            (if (string-prefix-p "zweirn:" url)
+                                (message (concat "Not yet implemented: open " url))
+                              (funcall originalf url)))))))
+              
 
 (defun zweirn-nv-search ()
   (interactive)
-  (let* ((notes (zweirn--notes-by-update-time zweirn-root-folder))
-         (notes (zweirn--sort-by-title notes))
-         (name "*Zweirn-NV*")
-         (buff (get-buffer-create name)))
-    (switch-to-buffer buff)
-    (zweirn-nv-mode)
-    ; Switching major mode clears the local variables.
-    (make-local-variable 'zweirn-nv--search-string)
-    (setq zweirn-nv--search-string "")
-    (make-local-variable 'zweirn-nv--notes)
-    (setq zweirn-nv--notes notes)
-    (make-local-variable 'zweirn-nv--subfolder-notes)
-    (setq zweirn-nv--subfolder-notes '())
-    (dolist (target zweirn-subfolders)
-      (let ((zweirn--folder (zweirn--subfolder-path (cadr target))))
-        (let* ((notes (zweirn--notes-by-update-time zweirn--folder))
-               (notes (zweirn--sort-by-title notes)))
-          (setq zweirn-nv--subfolder-notes (cons (list (cadr target) notes) zweirn-nv--subfolder-notes)))))
-    (zweirn--show-nv-search)))
+  ;; We need to do this work from the root folder.
+  (let ((zweirn--folder zweirn-root-folder))
+    (let* ((notes (zweirn--notes-by-update-time zweirn-root-folder))
+           (notes (zweirn--sort-by-title notes))
+           (name "*Zweirn-NV*")
+           (buff (get-buffer-create name)))
+      (switch-to-buffer buff)
+      (zweirn-nv-mode)
+      ;; Switching major mode clears the local variables.
+      (make-local-variable 'zweirn-nv--search-string)
+      (setq zweirn-nv--search-string "")
+      (make-local-variable 'zweirn-nv--notes)
+      (setq zweirn-nv--notes notes)
+      (make-local-variable 'zweirn-nv--subfolder-notes)
+      (setq zweirn-nv--subfolder-notes '())
+      (dolist (target zweirn-subfolders)
+        (let ((zweirn--folder (zweirn--subfolder-path (cadr target))))
+          (let* ((notes (zweirn--notes-by-update-time zweirn--folder))
+                 (notes (zweirn--sort-by-title notes)))
+            (setq zweirn-nv--subfolder-notes (cons (list (cadr target) notes) zweirn-nv--subfolder-notes)))))
+      (zweirn--show-nv-search))))
 
 (defun zweirn--show-nv-search ()
   (let ((inhibit-read-only t))
