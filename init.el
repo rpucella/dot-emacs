@@ -154,8 +154,8 @@
 (global-set-key (kbd "RET") 'newline-and-indent)  ;; indent automatically
 (global-set-key (kbd "C-c x") 'execute-extended-command)
 (global-set-key (kbd "C-c f") 'rp/toggle-fullscreen)
-(global-set-key (kbd "C-c n") 'zweirn)
-(global-set-key (kbd "C-c N") 'zweirn-create-note)
+(global-set-key (kbd "C-c z") 'zweirn)
+(global-set-key (kbd "C-c n") 'zweirn-create-note)
 (global-set-key (kbd "C-c c") 'rp/cheat-sheet)
 
 (when rp/is-macos 

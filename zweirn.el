@@ -116,10 +116,10 @@
 
 ;; Add to this list to add a new subfolder.
 ;; Each entry takes the form:
-;;    (character-for-subfolder subfolder-name prompt-string)
+;;    (character-for-subfolder subfolder-name prompt-string true-names)
 (defvar zweirn-subfolders
-  '((?a "archive" "(a)rchive")
-    (?r "reference" "(r)eference")))
+  '((?a "archive" "(a)rchive" nil)
+    (?r "reference" "(r)eference" nil)))
 
 
 ;; Default extension for markdown files.
@@ -206,10 +206,8 @@
 (defun zweirn--note-path (nt)
   (concat (file-name-as-directory zweirn--folder) nt))
 
-
 (defun zweirn--export-path (n)
   (concat (file-name-as-directory zweirn-export-folder) n))
-
 
 (defun zweirn--subfolder-note-path (subfolder n)
   (concat (file-name-as-directory subfolder) n))
@@ -375,8 +373,31 @@
     (goto-char (point-min))))
 
 
+(defun zweirn-refresh-name (nt)
+  "Rename file `nt` in the current zweirn--folder to a new UUID"
+  (let* ((name (zweirn--fresh-name)))
+    (rename-file (zweirn--note-path nt) (zweirn--note-path name))))
+
+
+(defun zweirn-refresh-current-name ()
+  "Rename file `nt` in the current zweirn--folder to a new UUID"
+  (interactive)
+  (let ((nt (zweirn--current-name)))
+    (if nt
+        (let* ((title (zweirn--note-title nt))
+               (prompt (concat "Refresh note name? " title)))
+          (when (yes-or-no-p prompt)
+            (zweirn-refresh-name nt)
+            (zweirn--show)))
+      (message "Cursor not over a note"))))
+
+
+(defun zweirn--fresh-name ()
+  (format "Z-%s.%s" (zweirn--random-uuid) zweirn-default-extension))
+
 (defun zweirn--random-uuid ()
   "Returns a UUID - calls “uuidgen” on MacOS, Linux, and PowelShell on Microsoft Windows."
+  ;; TODO: add Z- in front of it,and use this new name - the Z is not part
   (cond
    ((string-equal system-type "windows-nt")
     (string-trim (shell-command-to-string rp/powershell-random-uuid)))
@@ -423,10 +444,10 @@
   "Create a 'permanent' note in $HOME/.notes"
   (interactive)
   (if (zweirn-zweirn-buffer-p)
-      (unless zweirn--is-stable
+       (unless zweirn--is-stable
         (zweirn--create-notes-folder-if-needed)
-        (let* ((uuid (zweirn--random-uuid))
-               (new-file (concat (file-name-as-directory zweirn--folder) (concat uuid "." zweirn-default-extension)))
+        (let* ((fname (zweirn--fresh-name))
+               (new-file (zweirn--note-path fname))
                (buff (get-file-buffer new-file)))
           ;; TODO: if the file/buffer already exists, don't insert the # Note thing.
           ;; Also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
@@ -441,8 +462,8 @@
     (let ((zweirn--is-stable t)
           (zweirn--folder zweirn-root-folder))
       (zweirn--create-notes-folder-if-needed)
-      (let* ((uuid (zweirn--random-uuid))
-             (new-file (concat (file-name-as-directory zweirn--folder) (concat uuid "." zweirn-default-extension)))
+      (let* ((fname (zweirn--fresh-name))
+             (new-file (zweirn--note-path fname))
              (buff (get-file-buffer new-file)))
         ;; TODO: if the file/buffer already exists, don't insert the # Note thing.
         ;; Also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
@@ -507,6 +528,7 @@
       (message "Cursor not over a note"))))
 
 
+
 (defun zweirn-move-note ()
   "Move the note to subfolder"
   (interactive)
@@ -516,8 +538,15 @@
                (name (format "%s.%s" (zweirn--clean-title title) zweirn-default-extension))
                (target (zweirn--query-subfolder "Move to"))
                (target-subfolder (caddr target))
+               (target-true-name (if (> (length target) 3) (cadddr target) nil))
                (target-path (zweirn--subfolder-path (cadr target)))
-               (name (read-string (format "Name (%s): " name target-path) nil nil name)))
+               ;; If target folder has true names, ask for a name.
+               ;; If source folder has true names, we need to create a fresh name.
+               (name (if target-true-name
+                         (read-string (format "Name (%s): " name target-path) nil nil name)
+                       (if zweirn--has-true-name
+                           (zweirn--fresh-name)
+                         nt))))
           (rename-file (zweirn--note-path nt) (zweirn--subfolder-note-path target-path name))
           (zweirn--show))
       (message "Cursor not over a note"))))
@@ -531,10 +560,12 @@
         (let* ((title (zweirn--note-title nt))
                (prompt (concat "Move note to inbox? " title)))
           (when (yes-or-no-p prompt)
-            (let* ((uuid (zweirn--random-uuid))
-                   (new-file (concat (file-name-as-directory zweirn-root-folder) (concat uuid "." zweirn-default-extension))))
-              (rename-file (zweirn--note-path nt) new-file)
-              (zweirn--show))))
+            (if zweirn--has-true-name
+                (let* ((fname (zweirn--fresh-name))
+                       (new-file (concat (file-name-as-directory zweirn-root-folder) fname)))
+                  (rename-file (zweirn--note-path nt) new-file))
+              (rename-file (zweirn--note-path nt) (concat (file-name-as-directory zweirn-root-folder) nt)))
+            (zweirn--show)))
       (message "Cursor not over a note"))))
 
 
@@ -547,8 +578,8 @@
                (prompt (concat "Delete note? " title)))
           (when (yes-or-no-p prompt)
             ;; Move it to the trash folder.
-            (let* ((uuid (zweirn--random-uuid))
-                   (new-file (concat (file-name-as-directory zweirn-trash-folder) (concat uuid "." zweirn-default-extension))))
+            (let* ((fname (zweirn--fresh-name))
+                   (new-file (concat (file-name-as-directory zweirn-trash-folder) fname)))
               (rename-file (zweirn--note-path nt) new-file)
               (zweirn--show))))
       (message "Cursor not over a note"))))
@@ -582,8 +613,9 @@
   "Open subfolder"
   (interactive)
   (let* ((target (zweirn--query-subfolder "Open"))
-         (target-path (zweirn--subfolder-path (cadr target))))
-    (zweirn target-path t)))
+         (target-path (zweirn--subfolder-path (cadr target)))
+         (true-name (if (> (length target) 3) (cadddr target) nil)))
+    (zweirn target-path t true-name)))
 
 
 (defun zweirn-kill ()
@@ -597,7 +629,7 @@
   (zweirn--show))
 
 
-(defun zweirn (path &optional stable)
+(defun zweirn (path &optional stable true-name)
   "Show list of notes in $HOME/.notes"
   (interactive (list (if current-prefix-arg
                          (read-directory-name "Notes directory: ")
@@ -613,6 +645,8 @@
     (setq zweirn--folder folder)
     (make-local-variable 'zweirn--is-stable)
     (setq zweirn--is-stable stable)
+    (make-local-variable 'zweirn--has-true-name)
+    (setq zweirn--has-true-name true-name)
     (zweirn--create-notes-folder-if-needed)
     (zweirn--show)))
 
