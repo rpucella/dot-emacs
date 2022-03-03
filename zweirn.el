@@ -21,7 +21,7 @@
 (define-key zweirn-mode-map (kbd "e") 'zweirn-export-note)
 (define-key zweirn-mode-map (kbd "f") 'zweirn-show-name)
 (define-key zweirn-mode-map (kbd "g") 'zweirn-reload)
-(define-key zweirn-mode-map (kbd "i") 'zweirn-move-to-inbox)
+(define-key zweirn-mode-map (kbd "i") 'zweirn-inbox-note)
 (define-key zweirn-mode-map (kbd "l") 'zweirn-linked-notes)
 (define-key zweirn-mode-map (kbd "m") 'zweirn-move-note)
 (define-key zweirn-mode-map (kbd "n") 'zweirn-move-next-note)
@@ -33,6 +33,7 @@
 
 (define-key zweirn-mode-map (kbd "D") 'zweirn-open-dired)
 (define-key zweirn-mode-map (kbd "P") 'zweirn-pdf-note)
+(define-key zweirn-mode-map (kbd "M") 'zweirn-move-to-inbox)
 ;;(define-key zweirn-mode-map (kbd "P") 'zweirn-open-pdf)
 
 
@@ -475,6 +476,35 @@
                    (newline)
                    (newline))
           (switch-to-buffer buff))))))
+
+(defun zweirn-inbox-note ()
+  "Create a quick note in the inbox from a minibuffer text input."
+  (interactive)
+  (let ((zweirn--is-stable t)
+        (zweirn--folder zweirn-root-folder))
+    (zweirn--create-notes-folder-if-needed)
+    (let* ((fname (zweirn--fresh-name))
+           (new-file (zweirn--note-path fname))
+           (content (read-string "Quick note: "))
+           (title (substring content 0 (min 40 (length content))))
+           (buff (get-file-buffer new-file)))
+      ;; TODO: if the file/buffer already exists, don't insert the # Note thing.
+      ;; Also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
+      (if (null buff)
+          (progn 
+            (set-buffer (find-file-noselect new-file))
+            (newline)
+            (insert (format "# QUICK - %s" title))
+            (newline)
+            (newline)
+            (insert (zweirn--untitled))
+            (newline)
+            (newline)
+            (insert content)
+            (newline)
+            (save-buffer)
+            (kill-buffer))
+        (message "Wait... buffer already exists?")))))
 
 (defun zweirn-show-name ()
   "Show the name of the file containing the number on the current line."
