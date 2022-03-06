@@ -21,7 +21,8 @@
 (define-key zweirn-mode-map (kbd "e") 'zweirn-export-note)
 (define-key zweirn-mode-map (kbd "f") 'zweirn-show-name)
 (define-key zweirn-mode-map (kbd "g") 'zweirn-reload)
-(define-key zweirn-mode-map (kbd "i") 'zweirn-inbox-note)
+(define-key zweirn-mode-map (kbd "i") 'zweirn-move-to-inbox)
+(define-key zweirn-mode-map (kbd "j") 'zweirn-jot-note)
 (define-key zweirn-mode-map (kbd "l") 'zweirn-linked-notes)
 (define-key zweirn-mode-map (kbd "m") 'zweirn-move-note)
 (define-key zweirn-mode-map (kbd "n") 'zweirn-move-next-note)
@@ -33,7 +34,6 @@
 
 (define-key zweirn-mode-map (kbd "D") 'zweirn-open-dired)
 (define-key zweirn-mode-map (kbd "P") 'zweirn-pdf-note)
-(define-key zweirn-mode-map (kbd "M") 'zweirn-move-to-inbox)
 ;;(define-key zweirn-mode-map (kbd "P") 'zweirn-open-pdf)
 
 
@@ -115,6 +115,11 @@
 (defvar zweirn--folder zweirn-root-folder)
 
 
+(defvar zweirn-note-symbol "\u25ba")
+;;(defvar zweirn-note-symbol "*")
+
+(defvar zweirn-max-jot-title 60)
+
 ;; Add to this list to add a new subfolder.
 ;; Each entry takes the form:
 ;;    (character-for-subfolder subfolder-name prompt-string true-names)
@@ -193,7 +198,8 @@
   "Return the filename of the note on the current line."
   (let* ((line (buffer-substring-no-properties (line-beginning-position) (line-end-position)))
          (note-name-regexp (rx string-start
-                               "*[["
+                               (eval zweirn-note-symbol)
+                               "[["
                                (group (zero-or-more (or (not (any "]"))
                                                         (seq "]" (not (any "]")))))
                                       (? "]")
@@ -279,27 +285,45 @@
          (sorted (sort notes-with-titles (lambda (x y) (string-lessp (cdr x) (cdr y))))))
     (mapcar #'car sorted)))
 
-(defun zweirn--is-pinned (title)
-    (and (string-prefix-p ">> " title) (string-suffix-p " <<" title)))
+(defun zweirn--is-pin (title)
+  ;; (and (string-prefix-p ">> " title) (string-suffix-p " <<" title)))
+  (string-prefix-p "PIN - " title))
+
+(defun zweirn--is-jot (title)
+  (string-prefix-p "JOT - " title))
+
+(defun zweirn--strip-pin (title)
+  (string-trim (substring title 5)))
+
+(defun zweirn--strip-jot (title)
+  (string-trim (substring title 5)))
 
 (defun zweirn--pin-notes (notes)
-  ;; pull the notes with >> ... << at the front sorted by title
+  ;; split notes into pinned/jotted/rest with the first two sorted alphabetically
   (let* ((notes-with-titles (mapcar (lambda (nt) (cons nt (zweirn--note-title nt))) notes))
          (classified-notes (cl-loop for ntt in notes-with-titles
-                                    if (zweirn--is-pinned (cdr ntt))
+                                    if (zweirn--is-pin (cdr ntt))
                                       collect ntt into pinned
                                     else
-                                      collect ntt into not-pinned
-                                    finally return (cons pinned not-pinned)))
-         (pinned (sort (car classified-notes) (lambda (x y) (string-lessp (cdr x) (cdr y)))))
-         (not-pinned (cdr classified-notes)))
-    (append (mapcar #'car pinned) (mapcar #'car not-pinned))))
+                                      if (zweirn--is-jot (cdr ntt))
+                                        collect ntt into jotted
+                                      else 
+                                      collect ntt into other
+                                      end 
+                                    finally return (vector pinned jotted other)))
+         (pinned (sort (aref classified-notes 0) (lambda (x y) (string-lessp (cdr x) (cdr y)))))
+         (jotted (sort (aref classified-notes 1) (lambda (x y) (string-lessp (cdr x) (cdr y)))))
+         (other (aref classified-notes 2)))
+    (vector
+     (mapcar #'car pinned)
+     (mapcar #'car jotted)
+     (mapcar #'car other))))
 
 (defun zweirn--show ()
   (let* ((existing-notes (zweirn--notes-by-update-time zweirn--folder))
          ;; Sort alphabetically in the "stable folder" case.
          (existing-notes (if zweirn--is-stable
-                             (zweirn--sort-by-title existing-notes)
+                             (vector '() '() (zweirn--sort-by-title existing-notes))
                            (zweirn--pin-notes existing-notes)))
          (notes existing-notes)
          (inhibit-read-only t))
@@ -307,9 +331,24 @@
     (insert "Notes directory " (file-name-as-directory zweirn--folder))
     (newline)
     (newline)
-    (dolist (nt notes)
+    (when (aref notes 0) 
+      (dolist (nt (aref notes 0))
+        (let* ((title (zweirn--note-title nt))
+               (title (format ">> %s <<" (zweirn--strip-pin title))))
+          (insert zweirn-note-symbol (propertize (concat "[[" nt "]]") 'invisible t) "  ")
+          (insert title)
+          (newline)))
+      (newline))
+    (when (aref notes 1) 
+      (dolist (nt (aref notes 1))
+        (let* ((title (zweirn--note-title nt)))
+          (insert zweirn-note-symbol (propertize (concat "[[" nt "]]") 'invisible t) "  ")
+          (insert title)
+          (newline)))
+      (newline))
+    (dolist (nt (aref notes 2))
       (let ((title (zweirn--note-title nt)))
-        (insert "*" (propertize (concat "[[" nt "]]") 'invisible t) "  ")
+        (insert zweirn-note-symbol (propertize (concat "[[" nt "]]") 'invisible t) "  ")
         (insert title)
         (newline))))
   (goto-char (point-min))
@@ -477,16 +516,16 @@
                    (newline))
           (switch-to-buffer buff))))))
 
-(defun zweirn-inbox-note ()
-  "Create a quick note in the inbox from a minibuffer text input."
+(defun zweirn-jot-note ()
+  "Create a jot note in the inbox from a minibuffer text input."
   (interactive)
   (let ((zweirn--is-stable t)
         (zweirn--folder zweirn-root-folder))
     (zweirn--create-notes-folder-if-needed)
     (let* ((fname (zweirn--fresh-name))
            (new-file (zweirn--note-path fname))
-           (content (read-string "Quick note: "))
-           (title (substring content 0 (min 40 (length content))))
+           (content (read-string "Jot note: "))
+           (title (substring content 0 (min zweirn-max-jot-title (length content))))
            (buff (get-file-buffer new-file)))
       ;; TODO: if the file/buffer already exists, don't insert the # Note thing.
       ;; Also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
@@ -494,7 +533,7 @@
           (progn 
             (set-buffer (find-file-noselect new-file))
             (newline)
-            (insert (format "# QUICK - %s" title))
+            (insert (format "# JOT - %s" title))
             (newline)
             (newline)
             (insert (zweirn--untitled))
@@ -620,7 +659,8 @@
   (interactive)
   ;; Move forward one (if you're on ^* already...).
   (right-char)
-  (let ((result (re-search-forward "^*" nil t)))
+  (let* ((r (rx line-start (eval zweirn-note-symbol)))
+         (result (re-search-forward r nil t)))
     ;; Move back to * or back to original char if not found.
     (left-char)
     (zweirn-show-name)))
@@ -629,7 +669,8 @@
 (defun zweirn-move-prev-note ()
   "Find previous note marker in the *notes* buffer"
   (interactive)
-  (let ((result (re-search-forward "^*" nil t -1)))
+  (let* ((r (rx line-start (eval zweirn-note-symbol)))
+         (result (re-search-forward r nil t -1)))
     (zweirn-show-name)))
 
 
@@ -731,7 +772,7 @@
       (dolist (nt zweirn-nv--notes)
         (let ((title (zweirn--note-title nt)))
           (when (string-match-p (regexp-quote zweirn-nv--search-string) (downcase title))
-            (insert "*" (propertize (concat "[[" nt "]]") 'invisible t) "  ")
+            (insert zweirn-note-symbol (propertize (concat "[[" nt "]]") 'invisible t) "  ")
             (insert title)
             (newline)
             (setq seen-one t))))
@@ -756,7 +797,7 @@
             (insert name)
             (newline)
             (newline))
-          (insert "*" (propertize (concat "[[" path-nt "]]") 'invisible t) "  ")
+          (insert zweirn-note-symbol (propertize (concat "[[" path-nt "]]") 'invisible t) "  ")
           (insert title)
           (newline)
           (setq seen-one t))))
