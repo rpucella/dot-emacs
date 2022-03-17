@@ -34,7 +34,7 @@
 
 (define-key zweirn-mode-map (kbd "D") 'zweirn-open-dired)
 (define-key zweirn-mode-map (kbd "P") 'zweirn-pdf-note)
-;;(define-key zweirn-mode-map (kbd "P") 'zweirn-open-pdf)
+(define-key zweirn-mode-map (kbd "J") 'zweirn-coalesce-jots)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -319,6 +319,10 @@
      (mapcar #'car jotted)
      (mapcar #'car other))))
 
+(defun zweirn--pad-right (str width)
+  (let* ((fstring (format "%%%ds" (- width))))
+    (format fstring str)))
+
 (defun zweirn--show ()
   (let* ((existing-notes (zweirn--notes-by-update-time zweirn--folder))
          ;; Sort alphabetically in the "stable folder" case.
@@ -331,14 +335,21 @@
     (insert "Notes directory " (file-name-as-directory zweirn--folder))
     (newline)
     (newline)
-    (when (aref notes 0) 
-      (dolist (nt (aref notes 0))
-        (let* ((title (zweirn--note-title nt))
-               (title (format ">> %s <<" (zweirn--strip-pin title))))
-          (insert zweirn-note-symbol (propertize (concat "[[" nt "]]") 'invisible t) "  ")
-          (insert title)
-          (newline)))
-      (newline))
+    (when (aref notes 0)
+      (let* ((notes (aref notes 0))
+             (pinned-notes (mapcar (lambda (nt) (vector nt (zweirn--strip-pin (zweirn--note-title nt)))) notes))
+             (width 0))
+        (dolist (ntt pinned-notes)
+          (let* ((w (length (aref ntt 1))))
+            (if (> w width)
+                (setq width w))))
+        (dolist (ntt pinned-notes)
+          (let* ((nt (aref ntt 0))
+                 (title (format ">>  %s  <<" (zweirn--pad-right (aref ntt 1) width))))
+            (insert zweirn-note-symbol (propertize (concat "[[" nt "]]") 'invisible t) "  ")
+            (insert title)
+            (newline)))
+        (newline)))
     (when (aref notes 1) 
       (dolist (nt (aref notes 1))
         (let* ((title (zweirn--note-title nt)))
@@ -484,7 +495,8 @@
   "Create a 'permanent' note in $HOME/.notes"
   (interactive)
   (if (zweirn-zweirn-buffer-p)
-       (unless zweirn--is-stable
+      (unless zweirn--is-stable
+        ;; TODO: The main zweirn function should create the folders as an invariant.
         (zweirn--create-notes-folder-if-needed)
         (let* ((fname (zweirn--fresh-name))
                (new-file (zweirn--note-path fname))
@@ -545,6 +557,38 @@
             (kill-buffer))
         (message "Wait... buffer already exists?")))))
 
+(defun zweirn-coalesce-jots ()
+  "If there are any jotted notes, coalesce them all into a new note and trash originals."
+  (interactive)
+  (unless zweirn--is-stable
+    ;; Only allow this in the root folder.
+    (let* ((existing-notes (zweirn--notes-by-update-time zweirn--folder))
+           (jotted-notes (aref (zweirn--pin-notes existing-notes) 1)))
+      (unless (null jotted-notes)
+        ;; Only bother if we have jotted notes.
+        (let* ((fname (zweirn--fresh-name))
+               (new-file (zweirn--note-path fname))
+               (buff (get-file-buffer new-file)))
+          (if (null buff)
+              (let* ((root zweirn--folder))
+                (with-current-buffer (find-file-noselect new-file)
+                  (insert (format "\n# Note %s\n\n" (zweirn--untitled)))
+                  (dolist (nt jotted-notes)
+                    (let* ((original-file (concat (file-name-as-directory root) nt))
+                           (fname (zweirn--fresh-name))
+                           (new-file (concat (file-name-as-directory zweirn-trash-folder) fname)))
+                      (insert-file original-file)
+                      ;; What follows depends on the EXACT format of what we put in a jot note!
+                      (kill-line)
+                      (kill-line)
+                      (forward-line 2)
+                      (insert "## ")
+                      (goto-char (point-max))
+                      (rename-file original-file new-file)))
+                  (save-buffer)
+                  (kill-buffer))
+                (zweirn--show))))))))
+  
 (defun zweirn-show-name ()
   "Show the name of the file containing the number on the current line."
   (interactive)
