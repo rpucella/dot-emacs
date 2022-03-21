@@ -115,8 +115,12 @@
 (defvar zweirn--folder zweirn-root-folder)
 
 
-(defvar zweirn-note-symbol "\u25ba")
 ;;(defvar zweirn-note-symbol "*")
+(defvar zweirn-note-symbol "\u227b")
+;; Other nice choices:
+;;  22b3: ⊳
+;;  227b: ≻
+;;  25ba: ►
 
 (defvar zweirn-max-jot-title 60)
 
