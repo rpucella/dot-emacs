@@ -119,3 +119,81 @@ If STRING is nil, change the text in the region between positions FROM and TO."
       ;; TODO: allow passing parameters to program
       (make-comint-in-buffer buf-name buffer program)
       (set-buffer-process-coding-system 'utf-8 'utf-8))))
+
+(defun rp/box-schedule ()
+  (interactive)
+  (beginning-of-line)
+  (insert "          ┏━━━━━━━━━━━━━━━━┓
+    07:00 ┃                ┃
+          ┃                ┃
+    07:30 ┃                ┃
+          ┃                ┃
+    08:00 ┃                ┃
+          ┃                ┃
+    08:30 ┃                ┃
+          ┃                ┃
+    09:00 ┃                ┃
+          ┃                ┃
+    09:30 ┃                ┃
+          ┃                ┃
+    10:00 ┃                ┃
+          ┃                ┃
+    10:30 ┃                ┃
+          ┃                ┃
+    11:00 ┃                ┃
+          ┃                ┃
+    11:30 ┃                ┃
+          ┃                ┃
+    12:00 ┃                ┃
+          ┃                ┃
+    12:30 ┃                ┃
+          ┃                ┃
+    13:00 ┃                ┃
+          ┃                ┃
+    13:30 ┃                ┃
+          ┃                ┃
+    14:00 ┃                ┃
+          ┃                ┃
+    14:30 ┃                ┃
+          ┃                ┃
+    15:00 ┃                ┃
+          ┃                ┃
+    15:30 ┃                ┃
+          ┃                ┃
+    16:00 ┃                ┃
+          ┃                ┃
+    16:30 ┃                ┃
+          ┃                ┃
+    17:00 ┃                ┃
+          ┃                ┃
+    17:30 ┃                ┃
+          ┃                ┃
+          ┗━━━━━━━━━━━━━━━━┛
+"))
+
+(defun rp/box-line ()
+  (interactive)
+  (save-excursion 
+    (beginning-of-line)
+    (forward-char 10)
+    (delete-char 18)
+    (insert "┣━━━━━━━━━━━━━━━━┫")))
+
+(defun rp/box-clear ()
+  (interactive)
+  (save-excursion 
+    (beginning-of-line)
+    (forward-char 10)
+    (delete-char 18)
+    (insert "┃                ┃")))
+
+(defun rp/box-text (text)
+  (interactive (list (read-string "Text: ")))
+  (save-excursion
+    (beginning-of-line)
+    (forward-char 10)
+    (delete-char 18)
+    (let* ((margin (/ (- 14 (length text)) 2)))
+      (insert (format (format "┃ %%%ds%%%ds ┃" (- 14 margin) margin)  text "")))))
+
+    

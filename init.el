@@ -58,10 +58,29 @@
 ;;  Screen setup
 ;;
 
+(defun setup-monospace-font ()
+  ;; Monospace - easy peasy.
+  (set-frame-font "Hack-12" nil t)
+  )
+
+(defun setup-proportional-font ()
+  ;; TODO: make it easier to switch between monospace and proportional space fonts.
+  ;; Cf:  https://benghancock.github.io/blog/2022/tao-of-acme.html
+  (set-frame-font "-*-DejaVu Serif-normal-normal-normal-*-18-*-*-*-p-0-iso10646-1" nil t)
+  ;; If you set the default font to be proportional, make sure to set the line number font to remain monospace.
+  (set-face-font 'line-number "Hack-12")
+  ;; Bar cursors look better with proportional fonts.
+  (setq-default cursor-type 'bar)
+  ;; Also want a few modes to remain monospace (shell, etc)
+  ;; Cf: https://emacs.stackexchange.com/questions/3038/using-a-different-font-for-each-major-mode
+  ;; ... buffer-face-mode ...
+)
+
 (when window-system
   ;; WINDOW SYSTEM
   (setq default-frame-alist '((height . 40) (width . 120) (left . 24) (top . 24)))
-  (set-frame-font "Hack-12" nil t)
+  ;; Choose one, and choose wisely.
+  (setup-monospace-font)
   (load-theme 'green-phosphor t)
   (custom-theme-set-faces 'green-phosphor
                           '(mode-line ((t (:foreground "black" :background "LimeGreen" :box nil)))))
@@ -82,8 +101,8 @@
   (invert-face 'mode-line)
   (run-with-timer 0.1 nil #'invert-face 'mode-line))
   
-(setq visible-bell nil
-      ring-bell-function '--flash-mode-line)
+(setq visible-bell nil)
+(setq ring-bell-function '--flash-mode-line)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -135,7 +154,7 @@
 ;; `window-body-width` to give you back the width of the window minus something.
 ;; Cf:
 ;;   https://www.reddit.com/r/emacs/comments/bjgajb/what_is_the_preferred_way_to_dynamically_add_and/
-(defvar markdown-width-adjustment 10)
+(defvar markdown-width-adjustment 20)
 (advice-add 'markdown-fontify-hrs :around
             (lambda (originalf last)
               (let ((curr-width (window-body-width)))
