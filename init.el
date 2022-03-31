@@ -41,7 +41,7 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(custom-safe-themes
-   '("08765d801b06462a3ce7e414cdb747436ccaf0c073350be201d8f87bd0481435" default))
+   '("1a094b79734450a146b0c43afb6c669045d7a8a5c28bc0210aba28d36f85d86f" "d30332d2b92c4740f5bba398ae6aa32c05584bbaf6445f7a74f9a4096178b260" "08765d801b06462a3ce7e414cdb747436ccaf0c073350be201d8f87bd0481435" default))
  '(package-selected-packages
    '(olivetti tuareg fireplace paredit org-roam org-bullets ssh magit restclient ws-butler green-phosphor-theme green-is-the-new-black-theme dracula-theme go-mode web-mode markdown-mode)))
 (custom-set-faces
@@ -69,24 +69,28 @@
   (set-frame-font "-*-DejaVu Serif-normal-normal-normal-*-18-*-*-*-p-0-iso10646-1" nil t)
   ;; If you set the default font to be proportional, make sure to set the line number font to remain monospace.
   (set-face-font 'line-number "Hack-12")
+  ;;(set-face-font 'mode-line "Hack-14")
   ;; Bar cursors look better with proportional fonts.
   (setq-default cursor-type 'bar)
   ;; Also want a few modes to remain monospace (shell, etc)
   ;; Cf: https://emacs.stackexchange.com/questions/3038/using-a-different-font-for-each-major-mode
   ;; ... buffer-face-mode ...
-)
+  )
+
+(defun setup-theme ()
+  ;; (load-theme 'green-phosphor t)
+  ;; (custom-theme-set-faces 'green-phosphor
+  ;;                        '(mode-line ((t (:foreground "black" :background "LimeGreen" :box nil)))))
+  ;; (enable-theme 'green-phosphor)
+  (load-theme 'calm-forest t)
+  )
 
 (when window-system
   ;; WINDOW SYSTEM
   (setq default-frame-alist '((height . 40) (width . 120) (left . 24) (top . 24)))
   ;; Choose one, and choose wisely.
   (setup-monospace-font)
-  (load-theme 'green-phosphor t)
-  (custom-theme-set-faces 'green-phosphor
-                          '(mode-line ((t (:foreground "black" :background "LimeGreen" :box nil)))))
-  (enable-theme 'green-phosphor)
-  ;;(load-theme 'dracula t)
-  ;;(load-theme 'green-is-the-new-black t)
+  (setup-theme)
   ;; stop blinking
   (blink-cursor-mode 0)
   )
