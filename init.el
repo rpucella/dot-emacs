@@ -61,7 +61,8 @@
 (defun setup-base-fonts ()
   ;; Fixed pitch font is Hack.
   ;; Variable pitch font is DejaVu Serif.
-  ;; Should we also change 'fixed-pitch-serif?
+  ;; TODO: Check to make sure fonts exist.
+  ;; TODO: When is 'fixed-pitch-serif' used ?
   ;;  cf https://www.gnu.org/software/emacs/manual/html_node/emacs/Standard-Faces.html
   (set-face-attribute 'fixed-pitch nil :font "Hack-12")
   (set-face-attribute 'variable-pitch nil :font "DejaVu Serif-12")
