@@ -26,7 +26,9 @@
   (interactive (list (if current-prefix-arg ; <=== User provided arg
                          (prefix-numeric-value current-prefix-arg)
                        rp/default-embiggen-size))) ; <=== Default
-  (set-face-attribute 'default nil :height (* size 10)))
+  (set-face-attribute 'default nil :height (* size 10))
+  (set-face-attribute 'variable-pitch nil :height (* size 10))
+  (set-face-attribute 'fixed-pitch nil :height (* size 10)))
 
 
 (defun rp/cheat-sheet ()

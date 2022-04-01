@@ -43,7 +43,7 @@
  '(custom-safe-themes
    '("1a094b79734450a146b0c43afb6c669045d7a8a5c28bc0210aba28d36f85d86f" "d30332d2b92c4740f5bba398ae6aa32c05584bbaf6445f7a74f9a4096178b260" "08765d801b06462a3ce7e414cdb747436ccaf0c073350be201d8f87bd0481435" default))
  '(package-selected-packages
-   '(olivetti tuareg fireplace paredit org-roam org-bullets ssh magit restclient ws-butler green-phosphor-theme green-is-the-new-black-theme dracula-theme go-mode web-mode markdown-mode)))
+   '(svelte-mode olivetti tuareg fireplace paredit org-roam org-bullets ssh magit restclient ws-butler green-phosphor-theme green-is-the-new-black-theme dracula-theme go-mode web-mode markdown-mode)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -58,23 +58,40 @@
 ;;  Screen setup
 ;;
 
+(defun setup-base-fonts ()
+  ;; Fixed pitch font is Hack.
+  ;; Variable pitch font is DejaVu Serif.
+  ;; Should we also change 'fixed-pitch-serif?
+  ;;  cf https://www.gnu.org/software/emacs/manual/html_node/emacs/Standard-Faces.html
+  (set-face-attribute 'fixed-pitch nil :font "Hack-12")
+  (set-face-attribute 'variable-pitch nil :font "DejaVu Serif-12")
+  ;; Make sure line numbers are always fixed pitch.
+  (set-face-font 'line-number (face-font 'fixed-pitch))
+  ;; Force some modes to be fixed-pitch (shell, etc)
+  ;;  cf https://emacs.stackexchange.com/questions/3038/using-a-different-font-for-each-major-mode
+  (add-hook 'after-change-major-mode-hook
+            (lambda ()
+              (when (derived-mode-p 'comint-mode)
+                (setq buffer-face-mode-face 'fixed-pitch)
+                (buffer-face-mode))))
+  )
+
 (defun setup-monospace-font ()
   ;; Monospace - easy peasy.
-  (set-frame-font "Hack-12" nil t)
+  (set-face-font 'default (face-font 'fixed-pitch))
+  (set-frame-font (face-font 'default))
   )
 
 (defun setup-proportional-font ()
   ;; TODO: make it easier to switch between monospace and proportional space fonts.
-  ;; Cf:  https://benghancock.github.io/blog/2022/tao-of-acme.html
-  (set-frame-font "-*-DejaVu Serif-normal-normal-normal-*-18-*-*-*-p-0-iso10646-1" nil t)
-  ;; If you set the default font to be proportional, make sure to set the line number font to remain monospace.
-  (set-face-font 'line-number "Hack-12")
-  ;;(set-face-font 'mode-line "Hack-14")
+  ;;  cf  https://benghancock.github.io/blog/2022/tao-of-acme.html
+  (set-face-font 'default (face-font 'variable-pitch))
+  (set-frame-font (face-font 'default))
+  ;;(set-frame-font "-*-DejaVu Serif-normal-normal-normal-*-18-*-*-*-p-0-iso10646-1" nil t)
+  ;;(set-face-font 'fixed-pitch "Hack")
+  (setq markdown-list-item-bullets '("•" "▸" "◆" "◇" "►" "✚" "✜")) 
   ;; Bar cursors look better with proportional fonts.
   (setq-default cursor-type 'bar)
-  ;; Also want a few modes to remain monospace (shell, etc)
-  ;; Cf: https://emacs.stackexchange.com/questions/3038/using-a-different-font-for-each-major-mode
-  ;; ... buffer-face-mode ...
   )
 
 (defun setup-theme ()
@@ -88,9 +105,10 @@
 (when window-system
   ;; WINDOW SYSTEM
   (setq default-frame-alist '((height . 40) (width . 120) (left . 24) (top . 24)))
+  (setup-theme)
+  (setup-base-fonts)
   ;; Choose one, and choose wisely.
   (setup-monospace-font)
-  (setup-theme)
   ;; stop blinking
   (blink-cursor-mode 0)
   )
@@ -127,7 +145,6 @@
 ;; enable line numbers
 (defun display-line-numbers--turn-on ()
   ;; turn on line number mode for listed modes
-  (message (symbol-name major-mode))
   (when (derived-mode-p 'prog-mode 'text-mode)
     (display-line-numbers-mode)))
 (global-display-line-numbers-mode)
