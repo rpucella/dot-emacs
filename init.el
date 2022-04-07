@@ -72,7 +72,10 @@
   ;;  cf https://emacs.stackexchange.com/questions/3038/using-a-different-font-for-each-major-mode
   (add-hook 'after-change-major-mode-hook
             (lambda ()
-              (when (derived-mode-p 'comint-mode)
+              (when (or
+                     (derived-mode-p 'comint-mode)
+                     (derived-mode-p 'calendar-mode)
+                     (derived-mode-p 'dired-mode))
                 (setq buffer-face-mode-face 'fixed-pitch)
                 (buffer-face-mode))))
   )
