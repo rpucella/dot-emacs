@@ -5,6 +5,9 @@
 ;; Zweirn for Zweites Gehirn aka Second Brain
 
 
+;; TODO: Add cl-defstruct for reasonable things.
+;;  cf:  https://nullprogram.com/blog/2018/02/14/
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; ZWEIRN MODE.
@@ -23,7 +26,7 @@
 (define-key zweirn-mode-map (kbd "g") 'zweirn-reload)
 (define-key zweirn-mode-map (kbd "i") 'zweirn-move-to-inbox)
 (define-key zweirn-mode-map (kbd "j") 'zweirn-jot-note)
-(define-key zweirn-mode-map (kbd "l") 'zweirn-linked-notes)
+;;(define-key zweirn-mode-map (kbd "l") 'zweirn-linked-notes)
 (define-key zweirn-mode-map (kbd "m") 'zweirn-move-note)
 (define-key zweirn-mode-map (kbd "n") 'zweirn-move-next-note)
 (define-key zweirn-mode-map (kbd "o") 'zweirn-open-subfolder)
@@ -147,7 +150,7 @@
 
 (defun zweirn--create-notes-folder-if-needed ()
   "Create notes folder if it doesn't exist."
-  (unless zweirn--is-stable
+  (unless zweirn--is-nonroot
     ;; Only run this is we're in the root folder.
     (progn
       (unless (file-exists-p zweirn-root-folder)
@@ -155,9 +158,15 @@
       (unless (file-exists-p zweirn-trash-folder)
         (make-directory zweirn-trash-folder))
       (dolist (elt zweirn-subfolders)
-        (let ((path (concat (file-name-as-directory zweirn-root-folder) (cadr elt))))
-          (unless (file-exists-p path)
-            (make-directory path)))))))
+        (when (zweirn--is-subfolder (cadr elt))
+              (let ((path (concat (file-name-as-directory zweirn-root-folder) (cadr elt))))
+                (unless (file-exists-p path)
+                  (make-directory path))))))))
+
+
+(defun zweirn--is-subfolder (path)
+  "Check if a path is a subfolder of .notes or a standalone folder."
+  (not (string-prefix-p "/" path)))
 
 
 (defun zweirn--untitled ()
@@ -224,7 +233,9 @@
   (concat (file-name-as-directory subfolder) n))
 
 (defun zweirn--subfolder-path (name)
-  (concat (file-name-as-directory zweirn-root-folder) name))
+  (if (zweirn--is-subfolder name)
+      (concat (file-name-as-directory zweirn-root-folder) name)
+    name))
 
 
 (defun zweirn--clean-title (str)
@@ -329,8 +340,8 @@
 
 (defun zweirn--show ()
   (let* ((existing-notes (zweirn--notes-by-update-time zweirn--folder))
-         ;; Sort alphabetically in the "stable folder" case.
-         (existing-notes (if zweirn--is-stable
+         ;; Sort alphabetically in the "nonroot folder" case.
+         (existing-notes (if zweirn--is-nonroot
                              (vector '() '() (zweirn--sort-by-title existing-notes))
                            (zweirn--pin-notes existing-notes)))
          (notes existing-notes)
@@ -380,52 +391,6 @@
                            string-end)))
     (and (string-match header-regexp s)
          (match-string 1 s))))
-
-
-(defun zweirn--find-all-links (nt)
-  (let ((link-regexp (rx "[["
-                         (group (zero-or-more (or (not (any "]"))
-                                                        (seq "]" (not (any "]"))))))
-                         "]]"))
-        (links '()))
-  (with-temp-buffer
-    (insert-file-contents-literally (zweirn--note-path nt))
-    (goto-char (point-min))
-    (while (progn
-             (let ((found (re-search-forward link-regexp nil t)))
-               (when found
-                 (setq links (cons (match-string 1) links))
-                 t))))
-    links)))
-
-
-(defun zweirn--find-link (nt link)
-  (let ((link-regexp (regexp-quote (concat "[[" link "]]"))))
-    (with-temp-buffer
-      (insert-file-contents-literally (zweirn--note-path nt))
-      (goto-char (point-min))
-      (if (re-search-forward link-regexp nil t) t nil))))
-
-
-(defun zweirn--find-linking-notes (nt)
-  (let* ((notes (zweirn--notes-by-update-time zweirn--folder))
-         (title (zweirn--note-title nt))
-         (name (concat "*Zweirn Linked: " title "*"))
-         (buff (get-buffer-create name)))
-    ;; TODO: Zweirn Linked should probably be a zweirn-mode.
-    (switch-to-buffer buff)
-    (setq buffer-read-only t)
-    (let ((inhibit-read-only t))
-      (erase-buffer)
-      (insert "Notes linking to [[" title "]]")
-      (newline)
-      (newline)
-      (dolist (nt notes)
-        (when (zweirn--find-link nt title)
-          (let ((title (zweirn--note-title nt)))
-            (insert title))
-          (newline))))
-    (goto-char (point-min))))
 
 
 (defun zweirn-refresh-name (nt)
@@ -499,7 +464,7 @@
   "Create a 'permanent' note in $HOME/.notes"
   (interactive)
   (if (zweirn-zweirn-buffer-p)
-      (unless zweirn--is-stable
+      (unless zweirn--is-nonroot
         ;; TODO: The main zweirn function should create the folders as an invariant.
         (zweirn--create-notes-folder-if-needed)
         (let* ((fname (zweirn--fresh-name))
@@ -516,7 +481,7 @@
                 (newline)
                 (newline))
             (switch-to-buffer buff))))
-    (let ((zweirn--is-stable t)
+    (let ((zweirn--is-nonroot t)
           (zweirn--folder zweirn-root-folder))
       (zweirn--create-notes-folder-if-needed)
       (let* ((fname (zweirn--fresh-name))
@@ -525,18 +490,19 @@
         ;; TODO: if the file/buffer already exists, don't insert the # Note thing.
         ;; Also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
         (if (null buff)
-            (progn (zweirn--open-note-in-markdown new-file)
-                   (newline)
-                   (insert "# Note ")
-                   (insert (zweirn--untitled))
-                   (newline)
-                   (newline))
+              (let* ((default-title (format "Note %s" (zweirn--untitled)))
+                     (title (read-string (format "Title (%s): " default-title) nil nil default-title)))
+                (zweirn--open-note-in-markdown new-file)
+                (newline)
+                (insert (format "# %s" title))
+                (newline)
+                (newline))
           (switch-to-buffer buff))))))
 
 (defun zweirn-jot-note ()
   "Create a jot note in the inbox from a minibuffer text input."
   (interactive)
-  (let ((zweirn--is-stable t)
+  (let ((zweirn--is-nonroot t)
         (zweirn--folder zweirn-root-folder))
     (zweirn--create-notes-folder-if-needed)
     (let* ((fname (zweirn--fresh-name))
@@ -565,7 +531,7 @@
 (defun zweirn-coalesce-jots ()
   "If there are any jotted notes, coalesce them all into a new note and trash originals."
   (interactive)
-  (unless zweirn--is-stable
+  (unless zweirn--is-nonroot
     ;; Only allow this in the root folder.
     (let* ((existing-notes (zweirn--notes-by-update-time zweirn--folder))
            (jotted-notes (aref (zweirn--pin-notes existing-notes) 1)))
@@ -614,11 +580,13 @@
       (message "Cursor not over a note"))))
 
 (defun zweirn-nv-read-note ()
-  "Load the note pointed to by the point in a zweirn-nv buffer, killing the buffer in the process"
+  "Load the note pointed to by the point in a zweirn-nv buffer, killing the buffer in the process. Handle direct access notes as well."
   (interactive)
   (let ((nt (zweirn--current-name)))
     (if nt
-        (let ((file (concat (file-name-as-directory zweirn--folder) nt)))
+        (let ((file (if (zweirn--is-subfolder nt)
+                        (concat (file-name-as-directory zweirn--folder) nt)
+                      nt)))
           (kill-buffer (current-buffer))
           (zweirn--open-note-in-markdown file))
       (message "Cursor not over a note"))))
@@ -749,12 +717,12 @@
   (zweirn--show))
 
 
-(defun zweirn (path &optional stable true-name)
+(defun zweirn (path &optional nonroot true-name)
   "Show list of notes in $HOME/.notes"
   (interactive (list (if current-prefix-arg
                          (read-directory-name "Notes directory: ")
                        nil)))
-  ;; A stable folder is a non-current notes folder (archive, reference, etc).
+  ;; A nonroot folder is a non-root notes folder (archive, reference, etc).
   ;; It does not support creating new notes, and sorts alphabetically.
   (let* ((folder (or path zweirn-root-folder))
          (name (concat "*Zweirn* " (file-name-as-directory folder)))
@@ -763,8 +731,8 @@
     (zweirn-mode)
     (make-local-variable 'zweirn--folder)
     (setq zweirn--folder folder)
-    (make-local-variable 'zweirn--is-stable)
-    (setq zweirn--is-stable stable)
+    (make-local-variable 'zweirn--is-nonroot)
+    (setq zweirn--is-nonroot nonroot)
     (make-local-variable 'zweirn--has-true-name)
     (setq zweirn--has-true-name true-name)
     (zweirn--create-notes-folder-if-needed)
@@ -902,13 +870,61 @@
     (goto-char (point-min))))
 
 
-(defun zweirn-linked-notes ()
-  "Find all notes that link to this note"
-  (interactive)
-  (let ((nt (zweirn--current-name)))
-    (if nt
-        (zweirn--find-linking-notes nt)
-      (message "Cursor not over a note"))))
+
+
+;; (defun zweirn--find-all-links (nt)
+;;   (let ((link-regexp (rx "[["
+;;                          (group (zero-or-more (or (not (any "]"))
+;;                                                         (seq "]" (not (any "]"))))))
+;;                          "]]"))
+;;         (links '()))
+;;   (with-temp-buffer
+;;     (insert-file-contents-literally (zweirn--note-path nt))
+;;     (goto-char (point-min))
+;;     (while (progn
+;;              (let ((found (re-search-forward link-regexp nil t)))
+;;                (when found
+;;                  (setq links (cons (match-string 1) links))
+;;                  t))))
+;;     links)))
+
+
+;; (defun zweirn--find-link (nt link)
+;;   (let ((link-regexp (regexp-quote (concat "[[" link "]]"))))
+;;     (with-temp-buffer
+;;       (insert-file-contents-literally (zweirn--note-path nt))
+;;       (goto-char (point-min))
+;;       (if (re-search-forward link-regexp nil t) t nil))))
+
+
+;; (defun zweirn--find-linking-notes (nt)
+;;   (let* ((notes (zweirn--notes-by-update-time zweirn--folder))
+;;          (title (zweirn--note-title nt))
+;;          (name (concat "*Zweirn Linked: " title "*"))
+;;          (buff (get-buffer-create name)))
+;;     ;; TODO: Zweirn Linked should probably be a zweirn-mode.
+;;     (switch-to-buffer buff)
+;;     (setq buffer-read-only t)
+;;     (let ((inhibit-read-only t))
+;;       (erase-buffer)
+;;       (insert "Notes linking to [[" title "]]")
+;;       (newline)
+;;       (newline)
+;;       (dolist (nt notes)
+;;         (when (zweirn--find-link nt title)
+;;           (let ((title (zweirn--note-title nt)))
+;;             (insert title))
+;;           (newline))))
+;;     (goto-char (point-min))))
+
+
+;; (defun zweirn-linked-notes ()
+;;   "Find all notes that link to this note"
+;;   (interactive)
+;;   (let ((nt (zweirn--current-name)))
+;;     (if nt
+;;         (zweirn--find-linking-notes nt)
+;;       (message "Cursor not over a note"))))
 
 
 (provide 'zweirn)
