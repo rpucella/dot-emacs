@@ -64,8 +64,10 @@
   ;; TODO: Check to make sure fonts exist.
   ;; TODO: When is 'fixed-pitch-serif' used ?
   ;;  cf https://www.gnu.org/software/emacs/manual/html_node/emacs/Standard-Faces.html
-  (set-face-attribute 'fixed-pitch nil :font "Hack-12")
-  (set-face-attribute 'variable-pitch nil :font "DejaVu Serif-12")
+  ;;(set-face-attribute 'fixed-pitch nil :font "Hack-12")
+  ;;(set-face-attribute 'variable-pitch nil :font "DejaVu Serif-12")
+  (set-face-attribute 'fixed-pitch nil :font "Input Mono Narrow-12")
+  (set-face-attribute 'variable-pitch nil :font "Input Sans Narrow-12")
   ;; Make sure line numbers are always fixed pitch.
   (set-face-font 'line-number (face-font 'fixed-pitch))
   ;; Force some modes to be fixed-pitch (shell, etc)
@@ -179,7 +181,7 @@
 ;; `window-body-width` to give you back the width of the window minus something.
 ;; Cf:
 ;;   https://www.reddit.com/r/emacs/comments/bjgajb/what_is_the_preferred_way_to_dynamically_add_and/
-(defvar markdown-width-adjustment 20)
+(defvar markdown-width-adjustment 50)
 (advice-add 'markdown-fontify-hrs :around
             (lambda (originalf last)
               (let ((curr-width (window-body-width)))
