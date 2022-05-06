@@ -141,6 +141,8 @@
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
 
+(setq default-input-method 'TeX)
+
 (setq inhibit-startup-message t)
 (fset 'yes-or-no-p 'y-or-n-p)
 (setq confirm-nonexistent-file-or-buffer nil)
