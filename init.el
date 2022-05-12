@@ -78,9 +78,14 @@
                      (derived-mode-p 'comint-mode)
                      (derived-mode-p 'calendar-mode)
                      (derived-mode-p 'dired-mode))
-                (setq buffer-face-mode-face 'fixed-pitch)
-                (buffer-face-mode))))
+                (fixed-pitch))))
   )
+
+(defun fixed-pitch ()
+  "Switch the current buffer to the default fixed pitch font"
+  (interactive)
+  (setq buffer-face-mode-face 'fixed-pitch)
+  (buffer-face-mode))
 
 (defun setup-monospace-font ()
   ;; Monospace - easy peasy.
