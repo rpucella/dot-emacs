@@ -550,10 +550,13 @@
                            (new-file (concat (file-name-as-directory zweirn-trash-folder) fname)))
                       (insert-file original-file)
                       ;; What follows depends on the EXACT format of what we put in a jot note!
+                      ;; Get rid of everything up to the newline before the line with the actual content.
                       (kill-line)
                       (kill-line)
-                      (forward-line 2)
-                      (insert "## ")
+                      (kill-line)
+                      (kill-line)
+                      (kill-line)
+                      (kill-line)
                       (goto-char (point-max))
                       (rename-file original-file new-file)))
                   (save-buffer)
