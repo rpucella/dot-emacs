@@ -307,6 +307,18 @@
 (defun zweirn--is-jot (title)
   (string-prefix-p "JOT - " title))
 
+(defun zweirn--is-special (title)
+  (let ((case-fold-search nil))
+    ;; Search case insensitively.
+    (string-match "^[A-Z]+ - " title)))
+
+(defun zweirn--special-name (title)
+  (let* ((case-fold-search nil))
+    ;; Search case insensitively.
+    (save-match-data
+      (and (string-match "^\\([A-Z]+\\) - " title)
+           (match-string 1 title)))))
+
 (defun zweirn--strip-pin (title)
   (string-trim (substring title 5)))
 
@@ -320,18 +332,18 @@
                                     if (zweirn--is-pin (cdr ntt))
                                       collect ntt into pinned
                                     else
-                                      if (zweirn--is-jot (cdr ntt))
-                                        collect ntt into jotted
+                                      if (zweirn--is-special (cdr ntt))
+                                        collect ntt into specialed
                                       else 
                                       collect ntt into other
                                       end 
-                                    finally return (vector pinned jotted other)))
+                                    finally return (vector pinned specialed other)))
          (pinned (sort (aref classified-notes 0) (lambda (x y) (string-lessp (cdr x) (cdr y)))))
-         (jotted (sort (aref classified-notes 1) (lambda (x y) (string-lessp (cdr x) (cdr y)))))
+         (special (sort (aref classified-notes 1) (lambda (x y) (string-lessp (cdr x) (cdr y)))))
          (other (aref classified-notes 2)))
     (vector
      (mapcar #'car pinned)
-     (mapcar #'car jotted)
+     (mapcar #'car special)
      (mapcar #'car other))))
 
 (defun zweirn--pad-right (str width)
@@ -365,13 +377,9 @@
             (insert title)
             (newline)))
         (newline)))
-    (when (aref notes 1) 
-      (dolist (nt (aref notes 1))
-        (let* ((title (zweirn--note-title nt)))
-          (insert zweirn-note-symbol (propertize (concat "[[" nt "]]") 'invisible t) "  ")
-          (insert title)
-          (newline)))
-      (newline))
+    (when (aref notes 1)
+      (let ((ht (zweirn--classify-specialed-notes (aref notes 1))))
+        (maphash (lambda (key nts) (zweirn--show-notes nts)) ht)))
     (dolist (nt (aref notes 2))
       (let ((title (zweirn--note-title nt)))
         (insert zweirn-note-symbol (propertize (concat "[[" nt "]]") 'invisible t) "  ")
@@ -380,6 +388,22 @@
   (goto-char (point-min))
   (zweirn-move-next-note))
 
+(defun zweirn--show-notes (notes)
+   (dolist (nt notes)
+    (let* ((title (zweirn--note-title nt)))
+      (insert zweirn-note-symbol (propertize (concat "[[" nt "]]") 'invisible t) "  ")
+      (insert title)
+      (newline)))
+  (newline))
+
+(defun zweirn--classify-specialed-notes (notes)
+  (let ((ht (make-hash-table :test 'equal)))
+    (dolist (nt notes)
+      (let* ((title (zweirn--note-title nt))
+             (name (zweirn--special-name title))
+             (curr (gethash name ht)))
+        (puthash name (cons nt curr) ht)))
+    ht))
 
 (defun zweirn--strip-header (s)
   (let ((header-regexp (rx string-start
@@ -398,7 +422,6 @@
   (let* ((name (zweirn--fresh-name)))
     (rename-file (zweirn--note-path nt) (zweirn--note-path name))))
 
-
 (defun zweirn-refresh-current-name ()
   "Rename file `nt` in the current zweirn--folder to a new UUID"
   (interactive)
@@ -410,7 +433,6 @@
             (zweirn-refresh-name nt)
             (zweirn--show)))
       (message "Cursor not over a note"))))
-
 
 (defun zweirn--fresh-name ()
   (format "Z-%s.%s" (zweirn--random-uuid) zweirn-default-extension))
