@@ -701,19 +701,21 @@
   (interactive)
   ;; Move forward one (if you're on ^* already...).
   (right-char)
-  (let* ((r (rx line-start (eval zweirn-note-symbol)))
-         (result (re-search-forward r nil t)))
+  (let ((r (rx line-start (eval zweirn-note-symbol))))
+    (re-search-forward r nil t)
     ;; Move back to * or back to original char if not found.
     (left-char)
-    (zweirn-show-name)))
+    ;; (zweirn-show-name)
+    ))
 
 
 (defun zweirn-move-prev-note ()
   "Find previous note marker in the *notes* buffer"
   (interactive)
-  (let* ((r (rx line-start (eval zweirn-note-symbol)))
-         (result (re-search-forward r nil t -1)))
-    (zweirn-show-name)))
+  (let ((r (rx line-start (eval zweirn-note-symbol))))
+    (re-search-forward r nil t -1)
+    ;;;(zweirn-show-name)))
+    ))
 
 
 (defun zweirn-open-dired ()
