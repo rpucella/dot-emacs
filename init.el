@@ -45,7 +45,7 @@
 ;;
 
 (defvar fixed-pitch-modes
-  '(comint-mode calendar-mode dired-mode))
+  '(comint-mode calendar-mode dired-mode slime-repl-mode))
 
 (defun some-derived-mode-p (lst)
   (let ((result nil)
@@ -95,7 +95,7 @@
   (set-frame-font (face-font 'default))
   ;;(set-frame-font "-*-DejaVu Serif-normal-normal-normal-*-18-*-*-*-p-0-iso10646-1" nil t)
   ;;(set-face-font 'fixed-pitch "Hack")
-  (setq markdown-list-item-bullets '("•" "▸" "◆" "◇" "►" "✚" "✜")) 
+  (setq markdown-list-item-bullets '("▸" "•" "•" "•" "•" "•" "•"))
   ;; Bar cursors look better with proportional fonts.
   (setq-default cursor-type 'bar)
   )
@@ -106,7 +106,10 @@
   ;;                        '(mode-line ((t (:foreground "black" :background "LimeGreen" :box nil)))))
   ;; (enable-theme 'green-phosphor)
   (load-theme 'calm-forest t)
+  ;;(load-theme 'monokai t)
   )
+
+
 
 (when window-system
   ;; WINDOW SYSTEM
