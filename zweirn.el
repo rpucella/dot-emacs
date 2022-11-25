@@ -310,13 +310,13 @@
 (defun zweirn--is-special (title)
   (let ((case-fold-search nil))
     ;; Search case insensitively.
-    (string-match "^[A-Z]+ - " title)))
+    (string-match "^[A-Z0-9 ]+ - " title)))
 
 (defun zweirn--special-name (title)
   (let* ((case-fold-search nil))
     ;; Search case insensitively.
     (save-match-data
-      (and (string-match "^\\([A-Z]+\\) - " title)
+      (and (string-match "^\\([A-Z0-9 ]+\\) - " title)
            (match-string 1 title)))))
 
 (defun zweirn--strip-pin (title)

@@ -210,6 +210,7 @@
 (global-set-key (kbd "C-c j") 'zweirn-jot-note)
 (global-set-key (kbd "C-c /") 'zweirn-nv-search)
 (global-set-key (kbd "C-c C") 'rp/cheat-sheet)
+(global-set-key (kbd "C-c s") 'shell)
 
 (when rp/is-macos 
   (global-set-key (kbd "<s-return>") 'rp/toggle-fullscreen)
