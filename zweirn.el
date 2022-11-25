@@ -1,6 +1,7 @@
 
 (require 'subr-x)
 (require 'markdown-mode)
+(require 'cl-lib)
 
 ;; Zweirn for Zweites Gehirn aka Second Brain
 
@@ -170,8 +171,10 @@
 
 
 (defun zweirn--untitled ()
-  (format-time-string "%m/%d/%y %H:%M"))
+  (format "NOTES - %s" (zweirn--date-tag)))
 
+(defun zweirn--date-tag ()
+  (format-time-string "%A %m/%d/%y %H:%M"))
 
 (defun zweirn--open-note-in-markdown (fname)
   (switch-to-buffer (find-file-noselect fname))
@@ -346,6 +349,10 @@
      (mapcar #'car special)
      (mapcar #'car other))))
 
+(defun zweirn--filter-jotted-notes (notes)
+  ;;(message (format "jotted notes = %d" (length notes)))
+  (cl-remove-if (lambda (nt) (not (zweirn--is-jot (zweirn--note-title nt)))) notes))
+
 (defun zweirn--pad-right (str width)
   (let* ((fstring (format "%%%ds" (- width))))
     (format fstring str)))
@@ -495,7 +502,7 @@
           ;; TODO: if the file/buffer already exists, don't insert the # Note thing.
           ;; Also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
           (if (null buff)
-              (let* ((default-title (format "Note %s" (zweirn--untitled)))
+              (let* ((default-title (zweirn--untitled))
                      (title (read-string (format "Title (%s): " default-title) nil nil default-title)))
                 (zweirn--open-note-in-markdown new-file)
                 (newline)
@@ -512,7 +519,7 @@
         ;; TODO: if the file/buffer already exists, don't insert the # Note thing.
         ;; Also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
         (if (null buff)
-              (let* ((default-title (format "Note %s" (zweirn--untitled)))
+              (let* ((default-title (zweirn--untitled))
                      (title (read-string (format "Title (%s): " default-title) nil nil default-title)))
                 (zweirn--open-note-in-markdown new-file)
                 (newline)
@@ -541,7 +548,7 @@
             (insert (format "# JOT - %s" title))
             (newline)
             (newline)
-            (insert (zweirn--untitled))
+            (insert (zweirn--date-tag))
             (newline)
             (newline)
             (insert content)
@@ -556,7 +563,7 @@
   (unless zweirn--is-nonroot
     ;; Only allow this in the root folder.
     (let* ((existing-notes (zweirn--notes-by-update-time zweirn--folder))
-           (jotted-notes (aref (zweirn--pin-notes existing-notes) 1)))
+           (jotted-notes (zweirn--filter-jotted-notes (aref (zweirn--pin-notes existing-notes) 1))))
       (unless (null jotted-notes)
         ;; Only bother if we have jotted notes.
         (let* ((fname (zweirn--fresh-name))
@@ -565,7 +572,8 @@
           (if (null buff)
               (let* ((root zweirn--folder))
                 (with-current-buffer (find-file-noselect new-file)
-                  (insert (format "\n# Note %s\n\n" (zweirn--untitled)))
+                   ;;(insert (format "\n# Note %s\n\n" (zweirn--date-tag)))
+                 (insert (format "\n# %s\n\n" (zweirn--untitled)))
                   (dolist (nt jotted-notes)
                     (let* ((original-file (concat (file-name-as-directory root) nt))
                            (fname (zweirn--fresh-name))
