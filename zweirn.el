@@ -174,7 +174,7 @@
   (format "NOTES - %s" (zweirn--date-tag)))
 
 (defun zweirn--date-tag ()
-  (format-time-string "%A %m/%d/%y %H:%M"))
+  (format-time-string "%m/%d/%y %H:%M %A"))
 
 (defun zweirn--open-note-in-markdown (fname)
   (switch-to-buffer (find-file-noselect fname))
@@ -386,7 +386,8 @@
         (newline)))
     (when (aref notes 1)
       (let ((ht (zweirn--classify-specialed-notes (aref notes 1))))
-        (maphash (lambda (key nts) (zweirn--show-notes nts)) ht)))
+        (maphash (lambda (key nts) (zweirn--show-notes nts)) ht)
+        (newline)))
     (dolist (nt (aref notes 2))
       (let ((title (zweirn--note-title nt)))
         (insert zweirn-note-symbol (propertize (concat "[[" nt "]]") 'invisible t) "  ")
@@ -400,8 +401,7 @@
     (let* ((title (zweirn--note-title nt)))
       (insert zweirn-note-symbol (propertize (concat "[[" nt "]]") 'invisible t) "  ")
       (insert title)
-      (newline)))
-  (newline))
+      (newline))))
 
 (defun zweirn--classify-specialed-notes (notes)
   (let ((ht (make-hash-table :test 'equal)))
