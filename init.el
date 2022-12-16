@@ -1,4 +1,4 @@
-;; use M-x package-install-selected-packages when installing on a new system
+; use M-x package-install-selected-packages when installing on a new system
 
 (require 'package)
 (require 'display-line-numbers)
@@ -195,6 +195,9 @@
                            (lambda () (- curr-width markdown-width-adjustment))))
                   (funcall originalf last)))))
 
+(add-hook 'go-mode-hook
+          (lambda ()
+            (setq tab-width 4)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -248,3 +251,4 @@ A null prefix argument turns it off.
 
 When enabled, the total number of characters, words, and lines is
 displayed in the mode-line.")
+
