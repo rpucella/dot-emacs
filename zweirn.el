@@ -111,13 +111,14 @@
 (defvar zweirn-root-folder
   (concat (file-name-as-directory (getenv "HOME")) ".notes"))
 
-  
-(defvar zweirn-export-folder
+ (defvar zweirn-export-folder
   (concat (file-name-as-directory (getenv "HOME")) "Desktop"))
-
 
 (defvar zweirn--folder zweirn-root-folder)
 
+(defvar zweirn-special-prefixes '("JOT" "NOTES"))
+
+(defvar zweirn-pin-format "%s")
 
 ;;(defvar zweirn-note-symbol "*")
 (defvar zweirn-note-symbol "\u227b")
@@ -313,7 +314,8 @@
 (defun zweirn--is-special (title)
   (let ((case-fold-search nil))
     ;; Search case insensitively.
-    (string-match "^[A-Z0-9 ]+ - " title)))
+    (and (string-match "^\\([A-Z0-9 ]+\\) - " title)
+         (member (match-string 1 title) zweirn-special-prefixes))))
 
 (defun zweirn--special-name (title)
   (let* ((case-fold-search nil))
@@ -379,7 +381,7 @@
                 (setq width w))))
         (dolist (ntt pinned-notes)
           (let* ((nt (aref ntt 0))
-                 (title (format ">>  %s  <<" (zweirn--pad-right (aref ntt 1) width))))
+                 (title (format zweirn-pin-format (zweirn--pad-right (aref ntt 1) width))))
             (insert zweirn-note-symbol (propertize (concat "[[" nt "]]") 'invisible t) "  ")
             (insert title)
             (newline)))
