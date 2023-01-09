@@ -116,7 +116,7 @@
 
 (defvar zweirn--folder zweirn-root-folder)
 
-(defvar zweirn-special-prefixes '("JOT" "NOTES"))
+(defvar zweirn-special-prefixes '("JOT"))
 
 (defvar zweirn-pin-format "%s")
 
@@ -172,7 +172,7 @@
 
 
 (defun zweirn--untitled ()
-  (format "NOTES - %s" (zweirn--date-tag)))
+  (format "SCRATCH - %s" (zweirn--date-tag)))
 
 (defun zweirn--date-tag ()
   (format-time-string "%m/%d/%y %H:%M %A"))
