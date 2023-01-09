@@ -388,7 +388,8 @@
         (newline)))
     (when (aref notes 1)
       (let ((ht (zweirn--classify-specialed-notes (aref notes 1))))
-        (maphash (lambda (key nts) (zweirn--show-notes nts)) ht)
+        ;; Note that -classify-specialed-notes returns reversed lists!
+        (maphash (lambda (key nts) (zweirn--show-notes (nreverse nts))) ht)
         (newline)))
     (dolist (nt (aref notes 2))
       (let ((title (zweirn--note-title nt)))
