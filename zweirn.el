@@ -146,6 +146,42 @@
   (concat (file-name-as-directory zweirn-root-folder) ".trash"))
 
 
+;; Syntax highlighting.
+;;
+;; Cf http://xahlee.info/emacs/emacs/elisp_syntax_coloring.html
+;;
+;; Also inspired by markdown-mode:
+;;   https://github.com/jrblevin/markdown-mode/blob/master/markdown-mode.el
+
+(defgroup zweirn-faces nil
+  "Faces used in Zweirn Mode"
+  :group 'zweirn
+  :group 'faces)
+
+(defface zweirn-prefix-face
+  '((t (:inherit font-lock-function-name-face)))
+  "Face for title prefixes"
+  :group 'zweirn-faces)
+
+(defface zweirn-pin-face
+  '((t (:inherit (font-lock-function-name-face bold))))
+  "Face for pinned notes title"
+  :group 'zweirn-faces)
+
+(defun zweirn--highlights ()
+  (rx-let ((note-start (seq line-start
+                            (eval zweirn-note-symbol)
+                            "[["
+                            (zero-or-more (or (not (any "]"))
+                                              (seq "]" (not (any "]")))))
+                            (? "]")
+                            (or ".txt" ".md")
+                            "]]  ")))
+    `((,(rx note-start "PIN" (group (zero-or-more print))) (1 'zweirn-pin-face))
+      (,(rx note-start (group (zero-or-more upper-case)) " - ") (1 'zweirn-prefix-face)))))
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; HELPER FUNCTIONS.
@@ -175,7 +211,7 @@
   (format "SCRATCH - %s" (zweirn--date-tag)))
 
 (defun zweirn--date-tag ()
-  (format-time-string "%m/%d/%y %H:%M %A"))
+  (format-time-string "%y/%m/%d %H:%M %A"))
 
 (defun zweirn--open-note-in-markdown (fname)
   (switch-to-buffer (find-file-noselect fname))
@@ -383,6 +419,8 @@
           (let* ((nt (aref ntt 0))
                  (title (format zweirn-pin-format (zweirn--pad-right (aref ntt 1) width))))
             (insert zweirn-note-symbol (propertize (concat "[[" nt "]]") 'invisible t) "  ")
+            ;; For syntax highlighting!
+            (insert (propertize "PIN - " 'invisible t))
             (insert title)
             (newline)))
         (newline)))
@@ -396,6 +434,7 @@
         (insert zweirn-note-symbol (propertize (concat "[[" nt "]]") 'invisible t) "  ")
         (insert title)
         (newline))))
+  (font-lock-fontify-buffer)
   (goto-char (point-min))
   (zweirn-move-next-note))
 
@@ -754,7 +793,6 @@
   (interactive)
   (zweirn--show))
 
-
 (defun zweirn (path &optional nonroot true-name)
   "Show list of notes in $HOME/.notes"
   (interactive (list (if current-prefix-arg
@@ -767,6 +805,7 @@
          (buff (get-buffer-create name)))
     (switch-to-buffer buff)
     (zweirn-mode)
+    (setq font-lock-defaults '(zweirn--highlights))
     (make-local-variable 'zweirn--folder)
     (setq zweirn--folder folder)
     (make-local-variable 'zweirn--is-nonroot)
