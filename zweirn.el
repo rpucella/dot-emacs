@@ -178,8 +178,11 @@
                             (or ".txt" ".md")
                             "]]  ")))
     `((,(rx note-start "PIN" (group (zero-or-more print))) (1 'zweirn-pin-face))
-      (,(rx note-start (group (zero-or-more upper-case)) " - ") (1 'zweirn-prefix-face)))))
+      (,(rx note-start (group (zero-or-more (or upper-case digit))) " - ") (1 'zweirn-prefix-face)))))
 
+(defvar zweirn--buffer-prefix-zweirn "zweirn")
+(defvar zweirn--buffer-prefix-nv "zweirn-nv")
+(defvar zweirn--buffer-prefix-search "zweirn-search")
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -395,7 +398,7 @@
   (let* ((fstring (format "%%%ds" (- width))))
     (format fstring str)))
 
-(defun zweirn--show ()
+(defun zweirn--show (&optional point)
   (let* ((existing-notes (zweirn--notes-by-update-time zweirn--folder))
          ;; Sort alphabetically in the "nonroot folder" case.
          (existing-notes (if zweirn--is-nonroot
@@ -435,8 +438,10 @@
         (insert title)
         (newline))))
   (font-lock-fontify-buffer)
-  (goto-char (point-min))
-  (zweirn-move-next-note))
+  (if point
+      (goto-char point)
+    (goto-char (point-min)))
+  (zweirn--snap-to-note))
 
 (defun zweirn--show-notes (notes)
    (dolist (nt notes)
@@ -709,7 +714,7 @@
                            (zweirn--fresh-name)
                          nt))))
           (rename-file (zweirn--note-path nt) (zweirn--subfolder-note-path target-path name))
-          (zweirn--show))
+          (zweirn--show (point)))
       (message "Cursor not over a note"))))
 
 
@@ -726,7 +731,7 @@
                        (new-file (concat (file-name-as-directory zweirn-root-folder) fname)))
                   (rename-file (zweirn--note-path nt) new-file))
               (rename-file (zweirn--note-path nt) (concat (file-name-as-directory zweirn-root-folder) nt)))
-            (zweirn--show)))
+            (zweirn--show (point))))
       (message "Cursor not over a note"))))
 
 
@@ -742,7 +747,7 @@
             (let* ((fname (zweirn--fresh-name))
                    (new-file (concat (file-name-as-directory zweirn-trash-folder) fname)))
               (rename-file (zweirn--note-path nt) new-file)
-              (zweirn--show))))
+              (zweirn--show (point)))))
       (message "Cursor not over a note"))))
 
 
@@ -758,6 +763,17 @@
     ;; (zweirn-show-name)
     ))
 
+(defun zweirn--snap-to-note ()
+  "Go to note marker for the current line if it exists, otherwise forward to the next one or backward to previous"
+  (let ((r (rx line-start (eval zweirn-note-symbol))))
+    (beginning-of-line)
+    (if (re-search-forward r nil t)
+        ;; Move back to *.
+        (left-char)
+      ;; Search failed, search backward.
+      (when (not (re-search-backward r nil t))
+        ;; Nothing. Just to the end.
+        (goto-char (point-min))))))
 
 (defun zweirn-move-prev-note ()
   "Find previous note marker in the *notes* buffer"
@@ -801,7 +817,7 @@
   ;; A nonroot folder is a non-root notes folder (archive, reference, etc).
   ;; It does not support creating new notes, and sorts alphabetically.
   (let* ((folder (or path zweirn-root-folder))
-         (name (concat "*Zweirn* " (file-name-as-directory folder)))
+         (name (format "%s: %s" zweirn--buffer-prefix-zweirn (file-name-as-directory folder)))
          (buff (get-buffer-create name)))
     (switch-to-buffer buff)
     (zweirn-mode)
@@ -837,7 +853,7 @@
   (let ((zweirn--folder zweirn-root-folder))
     (let* ((notes (zweirn--notes-by-update-time zweirn-root-folder))
            (notes (zweirn--sort-by-title notes))
-           (name "*Zweirn-NV*")
+           (name zweirn--buffer-prefix-nv)
            (buff (get-buffer-create name)))
       (switch-to-buffer buff)
       (zweirn-nv-mode)
@@ -911,7 +927,7 @@
   ;; TODO: We probably need a dedicated mode for this to navigate results.
   (interactive (list (read-string "Search string: ")))
   (let* ((notes (zweirn--notes-by-update-time zweirn--folder))
-         (name (concat "*Zweirn-search* " s))
+         (name (format "%s: %s" zweirn--buffer-prefix-search s))
          (buff (get-buffer-create name))
          (seen nil)
          (num-notes 0))
