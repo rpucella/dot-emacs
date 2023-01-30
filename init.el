@@ -85,14 +85,16 @@
 (defun setup-monospace-font ()
   ;; Monospace - easy peasy.
   (set-face-font 'default (face-font 'fixed-pitch))
-  (set-frame-font (face-font 'default))
+  ;(set-frame-font (face-font 'default))
+  (set-frame-font (face-font 'fixed-pitch))
   )
 
 (defun setup-proportional-font ()
   ;; TODO: make it easier to switch between monospace and proportional space fonts.
   ;;  cf  https://benghancock.github.io/blog/2022/tao-of-acme.html
   (set-face-font 'default (face-font 'variable-pitch))
-  (set-frame-font (face-font 'default))
+  ;(set-frame-font (face-font 'default))
+  (set-frame-font (face-font 'fixed-pitch))
   ;;(set-frame-font "-*-DejaVu Serif-normal-normal-normal-*-18-*-*-*-p-0-iso10646-1" nil t)
   ;;(set-face-font 'fixed-pitch "Hack")
   (setq markdown-list-item-bullets '("▸" "•" "•" "•" "•" "•" "•"))

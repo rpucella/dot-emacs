@@ -805,7 +805,7 @@
          (buff (get-buffer-create name)))
     (switch-to-buffer buff)
     (zweirn-mode)
-    (setq font-lock-defaults '(zweirn--highlights))
+     (setq font-lock-defaults '(zweirn--highlights t))
     (make-local-variable 'zweirn--folder)
     (setq zweirn--folder folder)
     (make-local-variable 'zweirn--is-nonroot)
