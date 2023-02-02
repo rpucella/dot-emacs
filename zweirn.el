@@ -807,7 +807,9 @@
 
 (defun zweirn-reload ()
   (interactive)
-  (zweirn--show))
+  ;; TODO: Ideally, we want to stay on the same note we were on.
+  ;; This requires tracking which note we're on and passing it through instead of the point.
+  (zweirn--show (point)))
 
 (defun zweirn (path &optional nonroot true-name)
   "Show list of notes in $HOME/.notes"
