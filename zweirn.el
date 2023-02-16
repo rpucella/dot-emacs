@@ -217,7 +217,7 @@
   (format-time-string "%y/%m/%d %H:%M %A"))
 
 (defun zweirn--open-note-in-markdown (fname)
-  (switch-to-buffer (find-file-noselect fname))
+  (pop-to-buffer (find-file-noselect fname))
   (when (fboundp 'markdown-mode) (markdown-mode))
   (when (fboundp 'wc-mode) (wc-mode))
   (when (fboundp 'auto-fill-mode) (auto-fill-mode)))
@@ -556,7 +556,7 @@
                 (insert (format "# %s" title))
                 (newline)
                 (newline))
-            (switch-to-buffer buff))))
+            (pop-to-buffer buff))))
     (let ((zweirn--is-nonroot t)
           (zweirn--folder zweirn-root-folder))
       (zweirn--create-notes-folder-if-needed)
@@ -573,7 +573,7 @@
                 (insert (format "# %s" title))
                 (newline)
                 (newline))
-          (switch-to-buffer buff))))))
+          (pop-to-buffer buff))))))
 
 (defun zweirn-jot-note ()
   "Create a jot note in the inbox from a minibuffer text input."

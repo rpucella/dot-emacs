@@ -217,6 +217,19 @@
 (global-set-key (kbd "C-c C") 'rp/cheat-sheet)
 (global-set-key (kbd "C-c s") 'shell)
 
+;; I find this one more useful.
+;; Original binding: ido-kill-buffer.
+;; I never used kill-buffer to kill *another* buffer than the current one.
+(global-set-key (kbd "C-x k") 'kill-buffer-and-possibly-window)
+
+(defun kill-buffer-and-possibly-window ()
+  (interactive)
+  ;; If the current window is the sole window in the frame, do a normal kill-buffer.
+  ;; Other, kill the buffer and ditch the window.
+  (if (= (length (window-list (window-frame))) 1)
+      (kill-buffer)
+    (kill-buffer-and-window)))
+
 (when rp/is-macos 
   (global-set-key (kbd "<s-return>") 'rp/toggle-fullscreen)
   ;; right option key is used for accents (standard Option)
