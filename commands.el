@@ -86,10 +86,16 @@ If STRING is nil, change the text in the region between positions FROM and TO."
 
 
 (defun rp/unfill-region (beg end)
-  "Unfill the region, joining text paragraphs into a single logical line."
+  "Unfill the region, joining split lines into a single logical line."
   (interactive "*r")
   (let ((fill-column (point-max)))
     (fill-region beg end)))
+
+(defun rp/unfill-paragraph ()
+  "Unfill the current paragraph, joining split lines into a single logical line."
+  (interactive)
+  (mark-paragraph)
+  (rp/unfill-region (mark) (point)))
 
 
 (defun rp/clean-emacs ()
