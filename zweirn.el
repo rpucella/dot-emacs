@@ -111,7 +111,7 @@
 (defvar zweirn-root-folder
   (concat (file-name-as-directory (getenv "HOME")) ".notes"))
 
- (defvar zweirn-export-folder
+(defvar zweirn-export-folder
   (concat (file-name-as-directory (getenv "HOME")) "Desktop"))
 
 (defvar zweirn--folder zweirn-root-folder)
@@ -145,6 +145,11 @@
 (defvar zweirn-trash-folder
   (concat (file-name-as-directory zweirn-root-folder) ".trash"))
 
+(defun zweirn--simplify-folder-name (n)
+  ;; Drop HOME from the front of the folder name
+  (replace-regexp-in-string (format "^%s" (file-name-as-directory (getenv "HOME")))
+                            (file-name-as-directory "~")
+                            n))
 
 ;; Syntax highlighting.
 ;;
@@ -407,7 +412,7 @@
          (notes existing-notes)
          (inhibit-read-only t))
     (erase-buffer)
-    (insert "Notes directory " (file-name-as-directory zweirn--folder))
+    (insert "Notes directory " (zweirn--simplify-folder-name (file-name-as-directory zweirn--folder)))
     (newline)
     (newline)
     (when (aref notes 0)
@@ -819,7 +824,7 @@
   ;; A nonroot folder is a non-root notes folder (archive, reference, etc).
   ;; It does not support creating new notes, and sorts alphabetically.
   (let* ((folder (or path zweirn-root-folder))
-         (name (format "%s: %s" zweirn--buffer-prefix-zweirn (file-name-as-directory folder)))
+         (name (format "%s: %s" zweirn--buffer-prefix-zweirn (zweirn--simplify-folder-name (file-name-as-directory folder))))
          (buff (get-buffer-create name)))
     (switch-to-buffer buff)
     (zweirn-mode)
