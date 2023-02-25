@@ -219,6 +219,7 @@
 
 ;; I find this one more useful.
 ;; Original binding: ido-kill-buffer.
+;; Another possibility: ido-kill-buffer-at-head.
 ;; I never used kill-buffer to kill *another* buffer than the current one.
 (global-set-key (kbd "C-x k") 'kill-buffer-and-possibly-window)
 
