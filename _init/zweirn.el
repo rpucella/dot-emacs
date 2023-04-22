@@ -25,7 +25,7 @@
 (define-key zweirn-mode-map (kbd "e") 'zweirn-export-note)
 (define-key zweirn-mode-map (kbd "f") 'zweirn-show-name)
 (define-key zweirn-mode-map (kbd "g") 'zweirn-reload)
-(define-key zweirn-mode-map (kbd "i") 'zweirn-move-to-inbox)
+;;(define-key zweirn-mode-map (kbd "i") 'zweirn-move-to-inbox)
 (define-key zweirn-mode-map (kbd "j") 'zweirn-jot-note)
 ;;(define-key zweirn-mode-map (kbd "l") 'zweirn-linked-notes)
 (define-key zweirn-mode-map (kbd "m") 'zweirn-move-note)
@@ -114,8 +114,6 @@
 (defvar zweirn-export-folder
   (concat (file-name-as-directory (getenv "HOME")) "Desktop"))
 
-(defvar zweirn--folder zweirn-root-folder)
-
 (defvar zweirn-special-prefixes '("JOT"))
 
 (defvar zweirn-pin-format "%s")
@@ -132,10 +130,13 @@
 ;; Add to this list to add a new subfolder.
 ;; Each entry takes the form:
 ;;    (character-for-subfolder subfolder-name prompt-string true-names)
+;; TODO: restrict "true-names" to folders that are not within .notes [external].
 (defvar zweirn-subfolders
-  '((?a "archive" "(a)rchive" nil)
+  '((?i "inbox" "(i)nbox" nil)
+    (?a "archive" "(a)rchive" nil)
     (?r "reference" "(r)eference" nil)))
 
+(defvar zweirn-inbox-subfolder "inbox")
 
 ;; Default extension for markdown files.
 (defvar zweirn-default-extension "txt")
@@ -190,13 +191,47 @@
 (defvar zweirn--buffer-prefix-search "zweirn-search")
 
 
+
+;; MAIN ENTRY POINT
+
+(defun zweirn--is-inbox ()
+  (equal zweirn--folder (zweirn--subfolder-path zweirn-inbox-subfolder)))
+
+;; TODO:
+;; - Can probably replace path simply by subfolder name [terminology for subfolder = notebook]
+
+(defun zweirn (notebook &optional true-name)
+  "Show list of notes in $HOME/.notes"
+  ;; Presumably we could point to an arbitrary folder.
+  ;; Right now, only allow notebooks = subfolders of the root folder.
+  (interactive (list zweirn-inbox-subfolder))
+  ;; A nonroot folder is a non-root notes folder (archive, reference, etc).
+  ;; It does not support creating new notes, and sorts alphabetically.
+  (let* ((folder (zweirn--subfolder-path notebook))
+         (name (format "%s: %s" zweirn--buffer-prefix-zweirn notebook))
+         (buff (get-buffer-create name)))
+    (switch-to-buffer buff)
+    (zweirn-mode)
+    (setq font-lock-defaults '(zweirn--highlights t))
+    ;; TODO: Remove zweirn--folder in favor of zweirn--notebook.
+    (make-local-variable 'zweirn--folder)
+    (setq zweirn--folder folder)
+    (make-local-variable 'zweirn--notebook)
+    (setq zweirn--notebook notebook)
+    (make-local-variable 'zweirn--has-true-name)
+    (setq zweirn--has-true-name true-name)
+    (zweirn--create-notes-folder-if-needed)
+    (zweirn--show)))
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; HELPER FUNCTIONS.
 
 (defun zweirn--create-notes-folder-if-needed ()
   "Create notes folder if it doesn't exist."
-  (unless zweirn--is-nonroot
+  (when (zweirn--is-inbox)
     ;; Only run this is we're in the root folder.
     (progn
       (unless (file-exists-p zweirn-root-folder)
@@ -315,6 +350,7 @@
          (prompt (mapconcat #'identity (mapcar #'caddr zweirn-subfolders) " "))
          (subfolder-key (read-char-choice (format "%s %s? " prompt-string prompt) allowed-inputs))
          (target (assoc subfolder-key zweirn-subfolders)))
+    (message nil)
     target))
 
 
@@ -406,13 +442,13 @@
 (defun zweirn--show (&optional point)
   (let* ((existing-notes (zweirn--notes-by-update-time zweirn--folder))
          ;; Sort alphabetically in the "nonroot folder" case.
-         (existing-notes (if zweirn--is-nonroot
+         (existing-notes (if (not (zweirn--is-inbox))
                              (vector '() '() (zweirn--sort-by-title existing-notes))
                            (zweirn--pin-notes existing-notes)))
          (notes existing-notes)
          (inhibit-read-only t))
     (erase-buffer)
-    (insert "Notes directory " (zweirn--simplify-folder-name (file-name-as-directory zweirn--folder)))
+    (insert "Notebook: " zweirn--notebook)
     (newline)
     (newline)
     (when (aref notes 0)
@@ -498,7 +534,6 @@
 
 (defun zweirn--random-uuid ()
   "Returns a UUID - calls “uuidgen” on MacOS, Linux, and PowelShell on Microsoft Windows."
-  ;; TODO: add Z- in front of it,and use this new name - the Z is not part
   (cond
    ((string-equal system-type "windows-nt")
     (string-trim (shell-command-to-string rp/powershell-random-uuid)))
@@ -508,7 +543,7 @@
     (string-trim (shell-command-to-string "uuidgen")))
    (t
     ;; Code here by Christopher Wellons, 2011-11-18.
-    ;; Editted Hideki Saito further to generate all valid variants
+    ;; Edited Hideki Saito further to generate all valid variants
     ;; for "N" in xxxxxxxx-xxxx-Mxxx-Nxxx-xxxxxxxxxxxx format.
     (let* ((myStr (md5 (format "%s%s%s%s%s%s%s%s%s%s"
                                (user-uid)
@@ -542,10 +577,10 @@
   (eq major-mode 'zweirn-mode))
 
 (defun zweirn-create-note ()
-  "Create a 'permanent' note in $HOME/.notes"
+  "Create a 'permanent' note in inbox folder"
   (interactive)
   (if (zweirn-zweirn-buffer-p)
-      (unless zweirn--is-nonroot
+      (when (zweirn--is-inbox)
         ;; TODO: The main zweirn function should create the folders as an invariant.
         (zweirn--create-notes-folder-if-needed)
         (let* ((fname (zweirn--fresh-name))
@@ -562,8 +597,7 @@
                 (newline)
                 (newline))
             (pop-to-buffer buff))))
-    (let ((zweirn--is-nonroot t)
-          (zweirn--folder zweirn-root-folder))
+    (let ((zweirn--folder (zweirn--subfolder-path zweirn-inbox-subfolder)))
       (zweirn--create-notes-folder-if-needed)
       (let* ((fname (zweirn--fresh-name))
              (new-file (zweirn--note-path fname))
@@ -583,8 +617,7 @@
 (defun zweirn-jot-note ()
   "Create a jot note in the inbox from a minibuffer text input."
   (interactive)
-  (let ((zweirn--is-nonroot t)
-        (zweirn--folder zweirn-root-folder))
+  (let ((zweirn--folder (zweirn--subfolder-path zweirn-inbox-subfolder)))
     (zweirn--create-notes-folder-if-needed)
     (let* ((fname (zweirn--fresh-name))
            (new-file (zweirn--note-path fname))
@@ -612,7 +645,7 @@
 (defun zweirn-coalesce-jots ()
   "If there are any jotted notes, coalesce them all into a new note and trash originals."
   (interactive)
-  (unless zweirn--is-nonroot
+  (when (zweirn--is-inbox)
     ;; Only allow this in the root folder.
     (let* ((existing-notes (zweirn--notes-by-update-time zweirn--folder))
            (jotted-notes (zweirn--filter-jotted-notes (aref (zweirn--pin-notes existing-notes) 1))))
@@ -670,7 +703,7 @@
   (let ((nt (zweirn--current-name)))
     (if nt
         (let ((file (if (zweirn--is-subfolder nt)
-                        (concat (file-name-as-directory zweirn--folder) nt)
+                        (concat (file-name-as-directory zweirn-root-folder) nt)
                       nt)))
           (kill-buffer (current-buffer))
           (zweirn--open-note-in-markdown file))
@@ -720,23 +753,6 @@
                          nt))))
           (rename-file (zweirn--note-path nt) (zweirn--subfolder-note-path target-path name))
           (zweirn--show (point)))
-      (message "Cursor not over a note"))))
-
-
-(defun zweirn-move-to-inbox ()
-  "Move the note to the inbox, assigning is a new UUID"
-  (interactive)
-  (let ((nt (zweirn--current-name)))
-    (if nt
-        (let* ((title (zweirn--note-title nt))
-               (prompt (concat "Move note to inbox? " title)))
-          (when (yes-or-no-p prompt)
-            (if zweirn--has-true-name
-                (let* ((fname (zweirn--fresh-name))
-                       (new-file (concat (file-name-as-directory zweirn-root-folder) fname)))
-                  (rename-file (zweirn--note-path nt) new-file))
-              (rename-file (zweirn--note-path nt) (concat (file-name-as-directory zweirn-root-folder) nt)))
-            (zweirn--show (point))))
       (message "Cursor not over a note"))))
 
 
@@ -799,9 +815,10 @@
   "Open subfolder"
   (interactive)
   (let* ((target (zweirn--query-subfolder "Open"))
-         (target-path (zweirn--subfolder-path (cadr target)))
+         (target-notebook (cadr target))
+         (target-path (zweirn--subfolder-path target-notebook))
          (true-name (if (> (length target) 3) (cadddr target) nil)))
-    (zweirn target-path t true-name)))
+    (zweirn target-notebook true-name)))
 
 
 (defun zweirn-kill ()
@@ -815,28 +832,6 @@
   ;; TODO: Ideally, we want to stay on the same note we were on.
   ;; This requires tracking which note we're on and passing it through instead of the point.
   (zweirn--show (point)))
-
-(defun zweirn (path &optional nonroot true-name)
-  "Show list of notes in $HOME/.notes"
-  (interactive (list (if current-prefix-arg
-                         (read-directory-name "Notes directory: ")
-                       nil)))
-  ;; A nonroot folder is a non-root notes folder (archive, reference, etc).
-  ;; It does not support creating new notes, and sorts alphabetically.
-  (let* ((folder (or path zweirn-root-folder))
-         (name (format "%s: %s" zweirn--buffer-prefix-zweirn (zweirn--simplify-folder-name (file-name-as-directory folder))))
-         (buff (get-buffer-create name)))
-    (switch-to-buffer buff)
-    (zweirn-mode)
-     (setq font-lock-defaults '(zweirn--highlights t))
-    (make-local-variable 'zweirn--folder)
-    (setq zweirn--folder folder)
-    (make-local-variable 'zweirn--is-nonroot)
-    (setq zweirn--is-nonroot nonroot)
-    (make-local-variable 'zweirn--has-true-name)
-    (setq zweirn--has-true-name true-name)
-    (zweirn--create-notes-folder-if-needed)
-    (zweirn--show)))
 
 (add-hook 'markdown-mode-hook
           ;; When we enter markdown-mode, modify it if it we haven't already.
@@ -857,26 +852,21 @@
 (defun zweirn-nv-search ()
   (interactive)
   ;; We need to do this work from the root folder.
-  (let ((zweirn--folder zweirn-root-folder))
-    (let* ((notes (zweirn--notes-by-update-time zweirn-root-folder))
-           (notes (zweirn--sort-by-title notes))
-           (name zweirn--buffer-prefix-nv)
-           (buff (get-buffer-create name)))
-      (switch-to-buffer buff)
-      (zweirn-nv-mode)
-      ;; Switching major mode clears the local variables.
-      (make-local-variable 'zweirn-nv--search-string)
-      (setq zweirn-nv--search-string "")
-      (make-local-variable 'zweirn-nv--notes)
-      (setq zweirn-nv--notes notes)
-      (make-local-variable 'zweirn-nv--subfolder-notes)
-      (setq zweirn-nv--subfolder-notes '())
-      (dolist (target zweirn-subfolders)
-        (let ((zweirn--folder (zweirn--subfolder-path (cadr target))))
-          (let* ((notes (zweirn--notes-by-update-time zweirn--folder))
-                 (notes (zweirn--sort-by-title notes)))
-            (setq zweirn-nv--subfolder-notes (cons (list (cadr target) notes) zweirn-nv--subfolder-notes)))))
-      (zweirn--show-nv-search))))
+  (let* ((name zweirn--buffer-prefix-nv)
+         (buff (get-buffer-create name)))
+    (switch-to-buffer buff)
+    (zweirn-nv-mode)
+    ;; Switching major mode clears the local variables.
+    (make-local-variable 'zweirn-nv--search-string)
+    (setq zweirn-nv--search-string "")
+    (make-local-variable 'zweirn-nv--subfolder-notes)
+    (setq zweirn-nv--subfolder-notes '())
+    (dolist (target zweirn-subfolders)
+      (let ((zweirn--folder (zweirn--subfolder-path (cadr target))))
+        (let* ((notes (zweirn--notes-by-update-time zweirn--folder))
+               (notes (zweirn--sort-by-title notes)))
+          (setq zweirn-nv--subfolder-notes (cons (list (cadr target) notes) zweirn-nv--subfolder-notes)))))
+    (zweirn--show-nv-search)))
 
 (defun zweirn--show-nv-search ()
   (let ((inhibit-read-only t))
@@ -884,15 +874,7 @@
     (insert "==> ")
     (insert zweirn-nv--search-string)
     (newline)
-    (newline)
     (let ((seen-one nil))
-      (dolist (nt zweirn-nv--notes)
-        (let ((title (zweirn--note-title nt)))
-          (when (string-match-p (regexp-quote zweirn-nv--search-string) (downcase title))
-            (insert zweirn-note-symbol (propertize (concat "[[" nt "]]") 'invisible t) "  ")
-            (insert title)
-            (newline)
-            (setq seen-one t))))
       (dolist (subf-notes zweirn-nv--subfolder-notes)
         (let ((zweirn--folder (zweirn--subfolder-path (car subf-notes))))
           (let ((seen-one-here (zweirn-nv--show-subfolder-notes (car subf-notes) (cadr subf-notes))))
