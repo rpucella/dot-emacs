@@ -143,14 +143,10 @@
 
 
 ;; Trash folder
+;; TODO: Turn this into a notebook.
 (defvar zweirn-trash-folder
   (concat (file-name-as-directory zweirn-root-folder) ".trash"))
 
-(defun zweirn--simplify-folder-name (n)
-  ;; Drop HOME from the front of the folder name
-  (replace-regexp-in-string (format "^%s" (file-name-as-directory (getenv "HOME")))
-                            (file-name-as-directory "~")
-                            n))
 
 ;; Syntax highlighting.
 ;;
@@ -197,8 +193,6 @@
 (defun zweirn--is-inbox ()
   (equal zweirn--notebook zweirn-inbox-notebook))
 
-;; TODO:
-;; - Can probably replace path simply by notebook name [terminology for subfolder = notebook]
 
 (defun zweirn (notebook &optional true-name)
   "Show list of notes in $HOME/.notes"
@@ -213,9 +207,6 @@
     (switch-to-buffer buff)
     (zweirn-mode)
     (setq font-lock-defaults '(zweirn--highlights t))
-    ;; ;; TODO: Remove zweirn--folder in favor of zweirn--notebook.
-    ;; (make-local-variable 'zweirn--folder)
-    ;; (setq zweirn--folder folder)
     (make-local-variable 'zweirn--notebook)
     (setq zweirn--notebook notebook)
     (make-local-variable 'zweirn--has-true-name)
@@ -231,18 +222,15 @@
 
 (defun zweirn--create-notes-folder-if-needed ()
   "Create notes folder if it doesn't exist."
-  (when (zweirn--is-inbox)
-    ;; Only run this is we're in the root folder.
-    (progn
-      (unless (file-exists-p zweirn-root-folder)
-        (make-directory zweirn-root-folder))
-      (unless (file-exists-p zweirn-trash-folder)
-        (make-directory zweirn-trash-folder))
-      (dolist (elt zweirn-notebooks)
-        (when (zweirn--is-subfolder (cadr elt))
-              (let ((path (concat (file-name-as-directory zweirn-root-folder) (cadr elt))))
-                (unless (file-exists-p path)
-                  (make-directory path))))))))
+  (when (not (file-exists-p zweirn-root-folder))
+    (make-directory zweirn-root-folder))
+  (when (not (file-exists-p zweirn-trash-folder))
+    (make-directory zweirn-trash-folder))
+  (dolist (elt zweirn-notebooks)
+    (when (zweirn--is-subfolder (cadr elt))
+      (let ((path (concat (file-name-as-directory zweirn-root-folder) (cadr elt))))
+        (when (not (file-exists-p path))
+          (make-directory path))))))
 
 
 (defun zweirn--is-subfolder (path)
@@ -284,7 +272,7 @@
         (let ((line (string-trim (buffer-substring-no-properties
                                   (line-beginning-position)
                                   (line-end-position)))))
-          (unless (string-empty-p line)
+          (when (not (string-empty-p line))
             (setq result line)))
         (forward-line 1))
       (or result ""))))
@@ -648,7 +636,7 @@
     ;; Only allow this in the root folder.
     (let* ((existing-notes (zweirn--notes-by-update-time (zweirn--notebook-path zweirn--notebook)))
            (jotted-notes (zweirn--filter-jotted-notes (aref (zweirn--pin-notes existing-notes) 1))))
-      (unless (null jotted-notes)
+      (when (not (null jotted-notes))
         ;; Only bother if we have jotted notes.
         (let* ((fname (zweirn--fresh-name))
                (new-file (zweirn--note-path fname))
@@ -831,7 +819,7 @@
 (add-hook 'markdown-mode-hook
           ;; When we enter markdown-mode, modify it if it we haven't already.
           (lambda ()
-            (unless (member "zweirn" markdown-uri-types)
+            (when (not (member "zweirn" markdown-uri-types))
               ;; Add "zweirn:" as a URI type.
               ;; Annoyingly, looks like we need to reload markdown-mode to enable this change. 
               (add-to-list 'markdown-uri-types "zweirn")
@@ -886,7 +874,7 @@
             ; Put nt as notebook/nt so that when we open the note it picks it up from the notebook.
             (path-nt (concat (file-name-as-directory name) nt)))
         (when (string-match-p (regexp-quote zweirn-nv--search-string) (downcase title))
-          (unless seen-one
+          (when (not seen-one)
             (newline)
             (insert name)
             (newline)
