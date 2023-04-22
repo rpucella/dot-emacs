@@ -29,7 +29,7 @@
      ("#3C3D37" . 100)))
  '(magit-diff-use-overlays nil)
  '(package-selected-packages
-   '(monokai-theme slime color-theme-sanityinc-tomorrow svelte-mode olivetti tuareg fireplace paredit org-roam org-bullets ssh magit restclient ws-butler green-phosphor-theme green-is-the-new-black-theme dracula-theme go-mode web-mode markdown-mode))
+   '(fountain-mode monokai-theme slime color-theme-sanityinc-tomorrow svelte-mode olivetti tuareg fireplace paredit org-roam org-bullets ssh magit restclient ws-butler green-phosphor-theme green-is-the-new-black-theme dracula-theme go-mode web-mode markdown-mode))
  '(pos-tip-background-color "#FFFACE")
  '(pos-tip-foreground-color "#272822")
  '(weechat-color-list

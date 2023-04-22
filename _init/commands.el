@@ -18,7 +18,7 @@
 (defun rp/edit-init ()
   "Edit emacs initialization file"
   (interactive)
-  (find-file (concat-emacs-folder "init.el")))
+  (find-file (concat-emacs-folder "_init" "main.el")))
 
 
 (defun rp/embiggen (size)
@@ -205,3 +205,18 @@ If STRING is nil, change the text in the region between positions FROM and TO."
       (insert (format (format "┃ %%%ds%%%ds ┃" (- 14 margin) margin)  text "")))))
 
     
+(defun rp/comma-collapse (start end)
+  "Collapse multiple lines into a single line, separated by commas"
+  (interactive "*r")
+  (let* ((not-last-line (lambda () (save-excursion (forward-line 1) (< (point) end))))
+         (fill-column))
+    (save-excursion
+      (goto-char start)
+      (while (< (point) end)
+        (when (funcall not-last-line)
+          (goto-char (line-end-position))
+          (insert ", ")
+          (setq end (+ end 2))) ;; Inserting changes the end point of the region.
+        (forward-line 1)))
+    (setq fill-column (point-max))
+    (fill-region start end)))
