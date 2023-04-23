@@ -244,11 +244,34 @@
 (defun zweirn--date-tag ()
   (format-time-string "%y/%m/%d %H:%M %A"))
 
+(defun zweirn--rename-buffer-file-if-needed ()
+  "Rename the current buffer file to account for a possible new title.
+   Added to after-save-hook in a note buffer"
+  ;; TODO: Write me!
+  nil)
+
 (defun zweirn--open-note-in-markdown (fname)
   (pop-to-buffer (find-file-noselect fname))
-  (when (fboundp 'markdown-mode) (markdown-mode))
+  (when (fboundp 'markdown-mode)
+    ;; Enable markdown-mode and add functionality.
+    (markdown-mode)
+    (markdown-toggle-inline-images)
+    (when (not (member "zweirn" markdown-uri-types))
+      ;; Add "zweirn:" as a URI type.
+      ;; Annoyingly, looks like we need to reload markdown-mode to enable this change. 
+      (add-to-list 'markdown-uri-types "zweirn")
+      (load-library "markdown-mode")
+      ;; Intercept markdown--browse-url to allow opening a zweirn URI.
+      (advice-add 'markdown--browse-url :around
+                  (lambda (originalf url)
+                    (if (string-prefix-p "zweirn:" url)
+                        (message (concat "Not yet implemented: open " url))
+                      (funcall originalf url))))))
   (when (fboundp 'wc-mode) (wc-mode))
-  (when (fboundp 'auto-fill-mode) (auto-fill-mode)))
+  (when (fboundp 'auto-fill-mode) (auto-fill-mode))
+  ;; Add local hook to possibly rename after saving.
+  (add-hook 'after-save-hook 'zweirn--rename-buffer-file-if-needed nil t))
+
 
 
 (defun zweirn--read-first-lines (file n)
@@ -816,21 +839,6 @@
   ;; This requires tracking which note we're on and passing it through instead of the point.
   (zweirn--show (point)))
 
-(add-hook 'markdown-mode-hook
-          ;; When we enter markdown-mode, modify it if it we haven't already.
-          (lambda ()
-            (when (not (member "zweirn" markdown-uri-types))
-              ;; Add "zweirn:" as a URI type.
-              ;; Annoyingly, looks like we need to reload markdown-mode to enable this change. 
-              (add-to-list 'markdown-uri-types "zweirn")
-              (load-library "markdown-mode")
-              ;; Intercept markdown--browse-url to allow opening a zweirn URI.
-              (advice-add 'markdown--browse-url :around
-                          (lambda (originalf url)
-                            (if (string-prefix-p "zweirn:" url)
-                                (message (concat "Not yet implemented: open " url))
-                              (funcall originalf url)))))))
-              
 
 (defun zweirn-nv-search ()
   (interactive)
