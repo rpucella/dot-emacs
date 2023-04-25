@@ -11,7 +11,7 @@
       package-archive-priorities
       '(("MELPA Stable" . 10)
         ("GNU ELPA"     . 5)
-        ("MELPA"        . 0)))
+        ("MELPA"        . 1)))
 ;; Added by Package.el. Must be before any package configuration.
 (package-initialize)
 
@@ -276,4 +276,7 @@ When enabled, the total number of characters, words, and lines is
 displayed in the mode-line.")
 
 
-
+;; Remove trailing whitespace on lines that have been changed.
+;; Cf: https://github.com/lewang/ws-butler
+(require 'ws-butler)
+(add-hook 'prog-mode-hook #'ws-butler-mode)
