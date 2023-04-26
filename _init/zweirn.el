@@ -348,6 +348,19 @@
 (defun zweirn--note-path (nt)
   (concat (file-name-as-directory (zweirn--notebook-path zweirn--notebook)) nt))
 
+(defun zweirn--note-uuid (nt)
+  "Extract the UUID from a note name. Return nil if note has no UUID."
+  (let* ((uuid (rx string-start
+                   "Z-"
+                   (group (one-or-more (any "A-Z" "0-9")))
+                   "-"
+                   (zero-or-more (not (any ".")))
+                   (or ".txt" ".md")
+                   string-end)))
+    (save-match-data
+      (and (string-match uuid nt)
+           (match-string 1 nt)))))
+
 (defun zweirn--export-path (n)
   (concat (file-name-as-directory zweirn-export-folder) n))
 
