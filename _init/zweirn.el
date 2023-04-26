@@ -1,13 +1,38 @@
+;;; zweirn.el --- Zweites Gehirn 9Second Brain)
+
+;; Copyright (C) 2022  Riccardo Pucella
+
+;; Author: Riccardo Pucella <riccardo@acm.org>
+;; Keywords: lisp
+;; Version: 0.0.1
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;; Put a description of the package here
+
+;;; Code:
 
 (require 'subr-x)
 (require 'markdown-mode)
 (require 'cl-lib)
 
-;; Zweirn for Zweites Gehirn aka Second Brain
-
-
 ;; TODO: Add cl-defstruct for reasonable things.
 ;;  cf:  https://nullprogram.com/blog/2018/02/14/
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -129,12 +154,12 @@
 
 ;; Add to this list to add a new notebook.
 ;; Each entry takes the form:
-;;    (character-for-notebook notebook-name prompt-string true-names)
-;; TODO: restrict "true-names" to folders that are not within .notes [external].
+;;    (character-for-notebook notebook-name prompt-string)
+
 (defvar zweirn-notebooks
-  '((?i "inbox" "(i)nbox" nil)
-    (?a "archive" "(a)rchive" nil)
-    (?r "reference" "(r)eference" nil)))
+  '((?i "inbox" "(i)nbox")
+    (?a "archive" "(a)rchive")
+    (?r "reference" "(r)eference")))
 
 (defvar zweirn-inbox-notebook "inbox")
 
@@ -194,26 +219,25 @@
   (equal zweirn--notebook zweirn-inbox-notebook))
 
 
-(defun zweirn (notebook &optional true-name)
+(defun zweirn (notebook)
   "Show list of notes in $HOME/.notes"
   ;; Presumably we could point to an arbitrary folder.
   ;; Right now, only allow notebooks = subfolders of the root folder.
   (interactive (list zweirn-inbox-notebook))
-  ;; A nonroot folder is a non-root notes folder (archive, reference, etc).
-  ;; It does not support creating new notes, and sorts alphabetically.
   (let* ((folder (zweirn--notebook-path notebook))
          (name (format "%s: %s" zweirn--buffer-prefix-zweirn notebook))
          (buff (get-buffer-create name)))
     (switch-to-buffer buff)
     (zweirn-mode)
+    ;; Font lock.
     (setq font-lock-defaults '(zweirn--highlights t))
+    ;; Buffer local variables.
     (make-local-variable 'zweirn--notebook)
+    (make-local-variable 'zweirn--external)
     (setq zweirn--notebook notebook)
-    (make-local-variable 'zweirn--has-true-name)
-    (setq zweirn--has-true-name true-name)
+    (setq zweirn--external (zweirn--is-external notebook))
     (zweirn--create-notes-folder-if-needed)
     (zweirn--show)))
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -227,15 +251,19 @@
   (when (not (file-exists-p zweirn-trash-folder))
     (make-directory zweirn-trash-folder))
   (dolist (elt zweirn-notebooks)
-    (when (zweirn--is-subfolder (cadr elt))
+    (when (zweirn--is-internal (cadr elt))
       (let ((path (concat (file-name-as-directory zweirn-root-folder) (cadr elt))))
         (when (not (file-exists-p path))
           (make-directory path))))))
 
 
-(defun zweirn--is-subfolder (path)
-  "Check if a path is a subfolder of .notes or a standalone folder."
-  (not (string-prefix-p "/" path)))
+(defun zweirn--is-external (path)
+  "Check if a path is an external notebook or under .notes."
+  (string-prefix-p "/" path))
+
+(defun zweirn--is-internal (path)
+  "Check if a path is an internal notebook under .notes."
+  (not (zweirn--is-external path)))
 
 
 (defun zweirn--untitled ()
@@ -327,7 +355,7 @@
   (concat (file-name-as-directory notebook) n))
 
 (defun zweirn--notebook-path (name)
-  (if (zweirn--is-subfolder name)
+  (if (zweirn--is-internal name)
       (concat (file-name-as-directory zweirn-root-folder) name)
     name))
 
@@ -710,7 +738,7 @@
   (interactive)
   (let ((nt (zweirn--current-name)))
     (if nt
-        (let ((file (if (zweirn--is-subfolder nt)
+        (let ((file (if (zweirn--is-internal nt)
                         (concat (file-name-as-directory zweirn-root-folder) nt)
                       nt)))
           (kill-buffer (current-buffer))
@@ -747,14 +775,14 @@
         (let* ((title (zweirn--note-title nt))
                (name (format "%s.%s" (zweirn--clean-title title) zweirn-default-extension))
                (target (zweirn--query-notebook "Move to"))
-               (target-notebook (caddr target))
-               (target-true-name (if (> (length target) 3) (cadddr target) nil))
-               (target-path (zweirn--notebook-path (cadr target)))
-               ;; If target folder has true names, ask for a name.
-               ;; If source folder has true names, we need to create a fresh name.
-               (name (if target-true-name
+               (target-notebook (cadr target))
+               (target-external (zweirn--is-external target-notebook))
+               (target-path (zweirn--notebook-path target-notebook))
+               ;; If target folder is external, ask for a name.
+               ;; If source folder is external, we need to create a fresh name.
+               (name (if target-external
                          (read-string (format "Name (%s): " name target-path) nil nil name)
-                       (if zweirn--has-true-name
+                       (if zweirn--external
                            (zweirn--fresh-name)
                          nt))))
           (rename-file (zweirn--note-path nt) (zweirn--notebook-note-path target-path name))
@@ -822,9 +850,8 @@
   (interactive)
   (let* ((target (zweirn--query-notebook "Open"))
          (target-notebook (cadr target))
-         (target-path (zweirn--notebook-path target-notebook))
-         (true-name (if (> (length target) 3) (cadddr target) nil)))
-    (zweirn target-notebook true-name)))
+         (target-path (zweirn--notebook-path target-notebook)))
+    (zweirn target-notebook)))
 
 
 (defun zweirn-kill ()
@@ -1001,3 +1028,4 @@
 
 
 (provide 'zweirn)
+;;; zweirn.el ends here
