@@ -1032,5 +1032,20 @@
 ;;       (message "Cursor not over a note"))))
 
 
+;; Helper function to rename all notes in a notebookd - unsafe!
+(defun zweirn--refresh-note-names ()
+  (let* ((path (zweirn--notebook-path zweirn--notebook))
+         (notes (zweirn--notes-by-update-time path))
+         name)
+    (dolist (nt notes)
+      (setq name (zweirn--fresh-name))
+      (rename-file (zweirn--note-path nt) (zweirn--note-path name)))
+  ))
+
+(defun zweirn--refresh-notebook-note-names (notebook)
+  ;; Dynamic binding!
+  (let ((zweirn--notebook notebook))
+    (zweirn--refresh-note-names)))
+
 (provide 'zweirn)
 ;;; zweirn.el ends here
