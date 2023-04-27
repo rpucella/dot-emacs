@@ -1,4 +1,4 @@
-;;; zweirn.el --- Zweites Gehirn 9Second Brain)
+;;; zweirn.el --- Zweites Gehirn (Second Brain)
 
 ;; Copyright (C) 2022  Riccardo Pucella
 
@@ -167,9 +167,11 @@
 (defvar zweirn-default-extension "txt")
 
 
-;; Trash folder.
-;; It is technically a notebook.
+;; Trash folder. Technically a notebook.
 (defvar zweirn-trash-notebook "_trash")
+
+;; Assets folder. Technically a notebook, but cannot really be treated as such.
+(defvar zweirn-assets-notebook "_assets")
 
 
 ;; Syntax highlighting.
@@ -245,7 +247,9 @@
 
 (defun zweirn--create-notes-folder-if-needed ()
   "Create notes folder if it doesn't exist."
-  (let* ((notebooks (cons `(nil ,zweirn-trash-notebook nil) zweirn-notebooks))
+  (let* ((extra `((nil ,zweirn-trash-notebook nil)
+                  (nil ,zweirn-assets-notebook nil)))
+         (notebooks (append extra zweirn-notebooks))
          path)
     (when (not (file-exists-p zweirn-root-folder))
       (make-directory zweirn-root-folder))
@@ -988,6 +992,39 @@
                       (newline)))
                   (forward-line 1))))))))
     (goto-char (point-min))))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Images
+
+(defun zweirn--create-asset-directory (uuid)
+  (let* ((name (format "F-%s" uuid))
+         (path (zweirn--notebook-path zweirn-assets-notebook))
+         (path (concat (file-name-as-directory path) name)))
+    (when (file-exists-p path)
+        (error (format "Path %s already exists?" path)))
+    (make-directory path)))
+
+
+(defun zweirn--delete-asset-directory (uuid)
+  (let* ((name (format "F-%s" uuid))
+         (start-path (zweirn--notebook-path zweirn-assets-notebook))
+         (start-path (concat (file-name-as-directory start-path) name))
+         (target-path (zweirn--notebook-path zweirn-trash-notebook))
+         (target-path (concat (file-name-as-directory target-path) name)))
+    (when (not (file-exists-p start-path))
+      (error (format "No path %s" start-path)))
+    (when (file-exists-p target-path)
+      (error (format "Path %s already exists?" target-path)))
+    (rename-file start-path target-path)))
+
+
+(defun zweirn--copy-image (src uuid)
+  "returns the UUID of the image!"
+  )
+
 
 
 
