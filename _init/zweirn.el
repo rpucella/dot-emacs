@@ -167,10 +167,9 @@
 (defvar zweirn-default-extension "txt")
 
 
-;; Trash folder
-;; TODO: Turn this into a notebook.
-(defvar zweirn-trash-folder
-  (concat (file-name-as-directory zweirn-root-folder) ".trash"))
+;; Trash folder.
+;; It is technically a notebook.
+(defvar zweirn-trash-notebook "_trash")
 
 
 ;; Syntax highlighting.
@@ -246,13 +245,13 @@
 
 (defun zweirn--create-notes-folder-if-needed ()
   "Create notes folder if it doesn't exist."
-  (when (not (file-exists-p zweirn-root-folder))
-    (make-directory zweirn-root-folder))
-  (when (not (file-exists-p zweirn-trash-folder))
-    (make-directory zweirn-trash-folder))
-  (dolist (elt zweirn-notebooks)
-    (when (zweirn--is-internal (cadr elt))
-      (let ((path (concat (file-name-as-directory zweirn-root-folder) (cadr elt))))
+  (let* ((notebooks (cons `(nil ,zweirn-trash-notebook nil) zweirn-notebooks))
+         path)
+    (when (not (file-exists-p zweirn-root-folder))
+      (make-directory zweirn-root-folder))
+    (dolist (elt notebooks)
+      (when (zweirn--is-internal (cadr elt))
+        (setq path (zweirn--notebook-path (cadr elt)))
         (when (not (file-exists-p path))
           (make-directory path))))))
 
@@ -718,7 +717,8 @@
                   (dolist (nt jotted-notes)
                     (let* ((original-file (concat (file-name-as-directory root) nt))
                            (fname (zweirn--fresh-name))
-                           (new-file (concat (file-name-as-directory zweirn-trash-folder) fname)))
+                           (trash-path (zweirn--notebook-path zweirn-trash-notebook))
+                           (new-file (concat (file-name-as-directory trash-path) fname)))
                       (insert-file original-file)
                       ;; What follows depends on the EXACT format of what we put in a jot note!
                       ;; Get rid of everything up to the newline before the line with the actual content.
@@ -817,8 +817,10 @@
                (prompt (concat "Delete note? " title)))
           (when (yes-or-no-p prompt)
             ;; Move it to the trash folder.
-            (let* ((fname (zweirn--fresh-name))
-                   (new-file (concat (file-name-as-directory zweirn-trash-folder) fname)))
+            (let* (;; Assign fresh name if deleting from an external notebook.
+                   (fname (if zweirn--external (zweirn--fresh-name) nt))
+                   (trash-path (zweirn--notebook-path zweirn-trash-notebook))
+                   (new-file (concat (file-name-as-directory trash-path) fname)))
               (rename-file (zweirn--note-path nt) new-file)
               (zweirn--show (point)))))
       (message "Cursor not over a note"))))
