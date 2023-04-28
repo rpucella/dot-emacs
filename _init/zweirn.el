@@ -286,6 +286,7 @@
   (when (fboundp 'markdown-mode)
     ;; Enable markdown-mode and add functionality.
     (markdown-mode)
+    (setq markdown-max-image-size (cons 200 300))
     (markdown-toggle-inline-images)
     (when (not (member "zweirn" markdown-uri-types))
       ;; Add "zweirn:" as a URI type.
@@ -999,17 +1000,20 @@
 ;;
 ;; Images
 
+(defun zweirn--make-asset-directory-name (uuid)
+  (format "F-%s" uuid))
+
 (defun zweirn--create-asset-directory (uuid)
-  (let* ((name (format "F-%s" uuid))
+  (let* ((name (zweirn--make-asset-directory-name uuid))
          (path (zweirn--notebook-path zweirn-assets-notebook))
          (path (concat (file-name-as-directory path) name)))
-    (when (file-exists-p path)
-        (error (format "Path %s already exists?" path)))
-    (make-directory path)))
+    (when (not (file-exists-p path))
+      ;; Create if it does not already exists.
+      (make-directory path))))
 
 
 (defun zweirn--delete-asset-directory (uuid)
-  (let* ((name (format "F-%s" uuid))
+  (let* ((name (zweirn--make-asset-directory-name uuid))
          (start-path (zweirn--notebook-path zweirn-assets-notebook))
          (start-path (concat (file-name-as-directory start-path) name))
          (target-path (zweirn--notebook-path zweirn-trash-notebook))
@@ -1022,66 +1026,29 @@
 
 
 (defun zweirn--copy-image (src uuid)
-  "returns the UUID of the image!"
-  )
+  (let* ((uuid-path (zweirn--make-asset-directory-name uuid))
+         (assets-path (zweirn--notebook-path zweirn-assets-notebook))
+         (path (concat (file-name-as-directory assets-path) (file-name-as-directory uuid-path))))
+    (zweirn--create-asset-directory uuid)
+    (copy-file src path)
+    (concat path (file-name-nondirectory src))))
 
+(defun zweirn--current-under-zweirn-control ()
+  (let* ((full-file-name (buffer-file-name (current-buffer)))
+         (file-name (and full-file-name (file-name-nondirectory full-file-name))))
+    (and file-name
+         ;; TODO: Also check that file is under a notebook under zweirn-root-folder
+         (derived-mode-p 'markdown-mode)
+         (zweirn--note-uuid file-name))))
 
-
-
-
-;; (defun zweirn--find-all-links (nt)
-;;   (let ((link-regexp (rx "[["
-;;                          (group (zero-or-more (or (not (any "]"))
-;;                                                         (seq "]" (not (any "]"))))))
-;;                          "]]"))
-;;         (links '()))
-;;   (with-temp-buffer
-;;     (insert-file-contents-literally (zweirn--note-path nt))
-;;     (goto-char (point-min))
-;;     (while (progn
-;;              (let ((found (re-search-forward link-regexp nil t)))
-;;                (when found
-;;                  (setq links (cons (match-string 1) links))
-;;                  t))))
-;;     links)))
-
-
-;; (defun zweirn--find-link (nt link)
-;;   (let ((link-regexp (regexp-quote (concat "[[" link "]]"))))
-;;     (with-temp-buffer
-;;       (insert-file-contents-literally (zweirn--note-path nt))
-;;       (goto-char (point-min))
-;;       (if (re-search-forward link-regexp nil t) t nil))))
-
-
-;; (defun zweirn--find-linking-notes (nt)
-;;   (let* ((notes (zweirn--notes-by-update-time zweirn--folder))
-;;          (title (zweirn--note-title nt))
-;;          (name (concat "*Zweirn Linked: " title "*"))
-;;          (buff (get-buffer-create name)))
-;;     ;; TODO: Zweirn Linked should probably be a zweirn-mode.
-;;     (switch-to-buffer buff)
-;;     (setq buffer-read-only t)
-;;     (let ((inhibit-read-only t))
-;;       (erase-buffer)
-;;       (insert "Notes linking to [[" title "]]")
-;;       (newline)
-;;       (newline)
-;;       (dolist (nt notes)
-;;         (when (zweirn--find-link nt title)
-;;           (let ((title (zweirn--note-title nt)))
-;;             (insert title))
-;;           (newline))))
-;;     (goto-char (point-min))))
-
-
-;; (defun zweirn-linked-notes ()
-;;   "Find all notes that link to this note"
-;;   (interactive)
-;;   (let ((nt (zweirn--current-name)))
-;;     (if nt
-;;         (zweirn--find-linking-notes nt)
-;;       (message "Cursor not over a note"))))
+(defun zweirn-markdown-insert-image (src)
+  "Insert image into a markdown file under Zweirn."
+  (interactive (list (read-file-name "Image: ")))
+  (let* ((uuid (zweirn--current-under-zweirn-control))
+         name)
+    (when uuid
+      (setq path (zweirn--copy-image src uuid))
+      (markdown-insert-inline-image "image" path))))
 
 
 ;; Helper function to rename all notes in a notebookd - unsafe!
