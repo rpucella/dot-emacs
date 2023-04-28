@@ -173,6 +173,7 @@
 ;; Assets folder. Technically a notebook, but cannot really be treated as such.
 (defvar zweirn-assets-notebook "_assets")
 
+(defvar zweirn-max-image-width 1000)
 
 ;; Syntax highlighting.
 ;;
@@ -286,8 +287,7 @@
   (when (fboundp 'markdown-mode)
     ;; Enable markdown-mode and add functionality.
     (markdown-mode)
-    (setq markdown-max-image-size (cons 200 300))
-    (markdown-toggle-inline-images)
+    (markdown-display-inline-images)
     (when (not (member "zweirn" markdown-uri-types))
       ;; Add "zweirn:" as a URI type.
       ;; Annoyingly, looks like we need to reload markdown-mode to enable this change. 
@@ -298,7 +298,8 @@
                   (lambda (originalf url)
                     (if (string-prefix-p "zweirn:" url)
                         (message (concat "Not yet implemented: open " url))
-                      (funcall originalf url))))))
+                      (funcall originalf url))))
+      (local-set-key [drag-n-drop] 'zweirn-drag-n-drop-image)))
   (when (fboundp 'wc-mode) (wc-mode))
   (when (fboundp 'auto-fill-mode) (auto-fill-mode))
   ;; Add local hook to possibly rename after saving.
@@ -1025,13 +1026,29 @@
     (rename-file start-path target-path)))
 
 
+(defvar zweirn-convert-program "/opt/homebrew/bin/convert")
+
 (defun zweirn--copy-image (src uuid)
   (let* ((uuid-path (zweirn--make-asset-directory-name uuid))
          (assets-path (zweirn--notebook-path zweirn-assets-notebook))
-         (path (concat (file-name-as-directory assets-path) (file-name-as-directory uuid-path))))
+         (path (concat (file-name-as-directory assets-path) (file-name-as-directory uuid-path)))
+         (name (file-name-nondirectory src)))
     (zweirn--create-asset-directory uuid)
-    (copy-file src path)
+    ;; Last argument indicates to confirm in case of overwrite.
+    (copy-file src path 1)
+    ;; Resize if needed. Copy again so that previous can be used to confirm overwrite if needed.
+    (when (> (zweirn--get-image-width src) zweirn-max-image-width)
+      (zweirn--resize-image src (concat (file-name-as-directory path) name)))
     (concat path (file-name-nondirectory src))))
+
+(defun zweirn--resize-image (src tgt)
+  (shell-command-to-string
+   (format "%s -resize %dx '%s' '%s'" zweirn-convert-program zweirn-max-image-width src tgt)))
+
+(defun zweirn--get-image-width (src)
+  (string-to-number
+   (shell-command-to-string
+    (format "%s '%s' -ping -format \"%%w\" info:" zweirn-convert-program src))))
 
 (defun zweirn--current-under-zweirn-control ()
   (let* ((full-file-name (buffer-file-name (current-buffer)))
@@ -1048,8 +1065,18 @@
          name)
     (when uuid
       (setq path (zweirn--copy-image src uuid))
-      (markdown-insert-inline-image "image" path))))
+      (setq name (file-name-nondirectory path))
+      (markdown-insert-inline-image name path)
+      (markdown-display-inline-images))))
 
+(defun zweirn-drag-n-drop-image (evt)
+  (interactive "e")
+  (let* (file-info)
+    (when (eq (car evt) 'drag-n-drop)
+      (setq file-info (caddr evt))
+      (when (and (eq (car file-info) 'file)
+                 (> (length file-info) 2))
+        (zweirn-markdown-insert-image (caddr file-info))))))
 
 ;; Helper function to rename all notes in a notebookd - unsafe!
 (defun zweirn--refresh-note-names ()
@@ -1065,6 +1092,16 @@
   ;; Dynamic binding!
   (let ((zweirn--notebook notebook))
     (zweirn--refresh-note-names)))
+
+(defun zweirn--index-notes ()
+  ;; Go through all notes and get a map from uuid to notebook
+  (let* (notes
+         result)
+    (dolist (nb (mapcar (lambda (n) (nth 1 n)) zweirn-notebooks))
+      (when (zweirn--is-internal nb)
+        (setq notes (zweirn--notes-by-update-time (zweirn--notebook-path nb)))
+        (setq result (append result (mapcar (lambda (nt) `(,(zweirn--note-uuid nt) ,nb)) notes)))))
+    result))
 
 (provide 'zweirn)
 ;;; zweirn.el ends here
