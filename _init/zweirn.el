@@ -1070,6 +1070,7 @@
       (markdown-display-inline-images))))
 
 (defun zweirn-drag-n-drop-image (evt)
+  "Invoked by [drag-n-drop] in Markdown notes opened by Zweirn."
   (interactive "e")
   (let* (file-info)
     (when (eq (car evt) 'drag-n-drop)
@@ -1077,6 +1078,19 @@
       (when (and (eq (car file-info) 'file)
                  (> (length file-info) 2))
         (zweirn-markdown-insert-image (caddr file-info))))))
+
+(defun zweirn-markdown-open-assets ()
+  "Open the assets folder for the current note."
+  (interactive)
+  (let* ((uuid (zweirn--current-under-zweirn-control))
+         (assets-folder (zweirn--notebook-path zweirn-assets-notebook))
+         name
+         path)
+    (when uuid
+      (setq name (zweirn--make-asset-directory-name uuid))
+      (setq path (concat (file-name-as-directory assets-folder) name))
+      (shell-command (format "open '%s'" path)))))
+
 
 ;; Helper function to rename all notes in a notebookd - unsafe!
 (defun zweirn--refresh-note-names ()
