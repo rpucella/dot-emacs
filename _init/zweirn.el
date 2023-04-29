@@ -1095,13 +1095,41 @@
 
 (defun zweirn--index-notes ()
   ;; Go through all notes and get a map from uuid to notebook
-  (let* (notes
+  (let* ((notebooks (cons "_trash" (mapcar (lambda (n) (nth 1 n)) zweirn-notebooks)))
+         notes
          result)
-    (dolist (nb (mapcar (lambda (n) (nth 1 n)) zweirn-notebooks))
+    (dolist (nb notebooks)
       (when (zweirn--is-internal nb)
         (setq notes (zweirn--notes-by-update-time (zweirn--notebook-path nb)))
-        (setq result (append result (mapcar (lambda (nt) `(,(zweirn--note-uuid nt) ,nb)) notes)))))
+        (setq result (append result (mapcar (lambda (nt) (cons (zweirn--note-uuid nt) nb)) notes)))))
     result))
+
+(defun zweirn-gc-assets ()
+  "Find all folders that do not connect to an existing note. We may want to do something special for _trash?"
+  (interactive)
+  (let* ((name "zweirn-gc-assets")
+         (buff (get-buffer-create name))
+         (index (zweirn--index-notes))
+         (assets-folder (zweirn--notebook-path zweirn-assets-notebook))
+         (filter-regexp (rx string-start
+                            "F-"
+                            (group (one-or-more alnum))
+                            string-end))
+         (folders (directory-files assets-folder nil filter-regexp t))
+         uuid)
+    (switch-to-buffer buff)
+    (setq buffer-read-only t)
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      (insert (format "Unlinked asset folders in %s:\n\n" assets-folder))
+      (dolist (f folders)
+        (save-match-data
+          (setq uuid (and (string-match filter-regexp f)
+                          (match-string 1 f)))
+          (when (not (assoc uuid index))
+            (insert (format "%s\n" f))))))
+    (goto-char (point-min))))
+
 
 (provide 'zweirn)
 ;;; zweirn.el ends here
