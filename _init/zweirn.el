@@ -406,7 +406,7 @@
   (let* ((allowed-inputs (mapcar #'car zweirn-notebooks))
          (prompt (mapconcat #'identity (mapcar #'caddr zweirn-notebooks) " "))
          (notebook-key (read-char-choice (format "%s %s? " prompt-string prompt) allowed-inputs))
-         (target (assoc notebook-key zweirn-notebooks)))
+         (target (assq notebook-key zweirn-notebooks)))
     (message nil)
     target))
 
