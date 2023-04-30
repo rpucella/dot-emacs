@@ -287,7 +287,8 @@
   (when (fboundp 'markdown-mode)
     ;; Enable markdown-mode and add functionality.
     (markdown-mode)
-    (markdown-display-inline-images)
+    (when (display-images-p)
+      (markdown-display-inline-images))
     (when (not (member "zweirn" markdown-uri-types))
       ;; Add "zweirn:" as a URI type.
       ;; Annoyingly, looks like we need to reload markdown-mode to enable this change. 
@@ -1042,8 +1043,11 @@
     (concat path (file-name-nondirectory src))))
 
 (defun zweirn--resize-image (src tgt)
-  (shell-command-to-string
-   (format "%s -resize %dx '%s' '%s'" zweirn-convert-program zweirn-max-image-width src tgt)))
+  (let* ((cmd (format "%s -resize %dx '%s' '%s'" zweirn-convert-program zweirn-max-image-width src tgt))
+         result)
+    (setq result (shell-command cmd))
+    (when (> result 0)
+      (error "cannot run convert command to resize"))))
 
 (defun zweirn--get-image-width (src)
   (string-to-number
@@ -1067,7 +1071,8 @@
       (setq path (zweirn--copy-image src uuid))
       (setq name (file-name-nondirectory path))
       (markdown-insert-inline-image name path)
-      (markdown-display-inline-images))))
+      (when (display-images-p)
+        (markdown-display-inline-images)))))
 
 (defun zweirn-drag-n-drop-image (evt)
   "Invoked by [drag-n-drop] in Markdown notes opened by Zweirn."
