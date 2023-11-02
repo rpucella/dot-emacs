@@ -513,7 +513,7 @@
   (let* ((existing-notes (zweirn--notes-by-update-time (zweirn--notebook-path zweirn--notebook)))
          ;; Sort alphabetically in the "nonroot folder" case.
          (existing-notes (if (not (zweirn--is-inbox))
-                             (vector '() '() (zweirn--sort-by-title existing-notes))
+                             (vector '() '() '() (zweirn--sort-by-title existing-notes))
                            (zweirn--pin-notes existing-notes)))
          (notes existing-notes)
          (inhibit-read-only t))
