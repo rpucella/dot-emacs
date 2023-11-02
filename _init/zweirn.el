@@ -157,11 +157,11 @@
 ;;    (character-for-notebook notebook-name prompt-string)
 
 (defvar zweirn-notebooks
-  '((?i "inbox" "(i)nbox")
+  '((?h "HOME" "(H)OME")
     (?a "archive" "(a)rchive")
     (?r "reference" "(r)eference")))
 
-(defvar zweirn-inbox-notebook "inbox")
+(defvar zweirn-inbox-notebook "HOME")
 
 ;; Default extension for markdown files.
 (defvar zweirn-default-extension "txt")
@@ -924,11 +924,19 @@
     (setq zweirn-nv--search-string "")
     (make-local-variable 'zweirn-nv--notebook-notes)
     (setq zweirn-nv--notebook-notes '())
+    ;; Do all notebooks EXCEPT inbox.
     (dolist (target zweirn-notebooks)
       (let ((zweirn--notebook (cadr target)))
-        (let* ((notes (zweirn--notes-by-update-time (zweirn--notebook-path zweirn--notebook)))
-               (notes (zweirn--sort-by-title notes)))
-          (setq zweirn-nv--notebook-notes (cons (list (cadr target) notes) zweirn-nv--notebook-notes)))))
+        (when (not (equal zweirn--notebook zweirn-inbox-notebook))
+          (let* ((notes (zweirn--notes-by-update-time (zweirn--notebook-path zweirn--notebook)))
+                 (notes (zweirn--sort-by-title notes)))
+            (setq zweirn-nv--notebook-notes (cons (list (cadr target) notes) zweirn-nv--notebook-notes))))))
+    ;; Add inbox at the front - keep consistent with above?
+    (let* ((target (list 'ignore zweirn-inbox-notebook 'ignore))
+           (zweirn--notebook (cadr target)))
+      (let* ((notes (zweirn--notes-by-update-time (zweirn--notebook-path zweirn--notebook)))
+             (notes (zweirn--sort-by-title notes)))
+        (setq zweirn-nv--notebook-notes (cons (list (cadr target) notes) zweirn-nv--notebook-notes))))
     (zweirn--show-nv-search)))
 
 (defun zweirn--show-nv-search ()
