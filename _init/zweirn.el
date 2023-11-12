@@ -158,11 +158,11 @@
 ;;    (character-for-notebook notebook-name prompt-string)
 
 (defvar zweirn-notebooks
-  '((?i "inbox" "(i)nbox")
+  '((?h "HOME" "(H)OME")
     (?a "archive" "(a)rchive")
     (?r "reference" "(r)eference")))
 
-(defvar zweirn-inbox-notebook "inbox")
+(defvar zweirn-inbox-notebook "HOME")
 
 ;; Default extension for markdown files.
 (defvar zweirn-default-extension "txt")
@@ -175,6 +175,9 @@
 (defvar zweirn-assets-notebook "_assets")
 
 (defvar zweirn-max-image-width 1000)
+
+;; Set this to true to sort inbox by name instad of by last updated.
+(defvar zweirn-sort-inbox t)
 
 ;; Syntax highlighting.
 ;;
@@ -461,14 +464,19 @@
 (defun zweirn--is-special (title)
   (let ((case-fold-search nil))
     ;; Search case insensitively.
-    (and (string-match "^\\([A-Z0-9 ]+\\) - " title)
+    (and (zweirn--is-tagged title)
          (member (match-string 1 title) zweirn-special-prefixes))))
+
+(defun zweirn--is-tagged (title)
+  (let ((case-fold-search nil))
+    ;; Search case insensitively.
+    (string-match "^\\([A-Z0-9 ]+\\) - " title)))
 
 (defun zweirn--special-name (title)
   (let* ((case-fold-search nil))
     ;; Search case insensitively.
     (save-match-data
-      (and (string-match "^\\([A-Z0-9 ]+\\) - " title)
+      (and (zweirn--is-tagged title)
            (match-string 1 title)))))
 
 (defun zweirn--strip-pin (title)
@@ -483,19 +491,24 @@
          (classified-notes (cl-loop for ntt in notes-with-titles
                                     if (zweirn--is-pin (cdr ntt))
                                       collect ntt into pinned
+                                    else if (zweirn--is-special (cdr ntt))
+                                      collect ntt into specialed
+                                    else if (zweirn--is-tagged (cdr ntt))
+                                      collect ntt into tagged
                                     else
-                                      if (zweirn--is-special (cdr ntt))
-                                        collect ntt into specialed
-                                      else 
                                       collect ntt into other
-                                      end 
-                                    finally return (vector pinned specialed other)))
+                                    end
+                                    finally return (vector pinned specialed tagged other)))
          (pinned (sort (aref classified-notes 0) (lambda (x y) (string-lessp (cdr x) (cdr y)))))
          (special (sort (aref classified-notes 1) (lambda (x y) (string-lessp (cdr x) (cdr y)))))
-         (other (aref classified-notes 2)))
+         (tagged (sort (aref classified-notes 2) (lambda (x y) (string-lessp (cdr x) (cdr y)))))
+         (other (if zweirn-sort-inbox
+                    (sort (aref classified-notes 3) (lambda (x y) (string-lessp (cdr x) (cdr y))))
+                  (aref classified-notes 3))))
     (vector
      (mapcar #'car pinned)
      (mapcar #'car special)
+     (mapcar #'car tagged)
      (mapcar #'car other))))
 
 (defun zweirn--filter-jotted-notes (notes)
@@ -510,7 +523,7 @@
   (let* ((existing-notes (zweirn--notes-by-update-time (zweirn--notebook-path zweirn--notebook)))
          ;; Sort alphabetically in the "nonroot folder" case.
          (existing-notes (if (not (zweirn--is-inbox))
-                             (vector '() '() (zweirn--sort-by-title existing-notes))
+                             (vector '() '() '() (zweirn--sort-by-title existing-notes))
                            (zweirn--pin-notes existing-notes)))
          (notes existing-notes)
          (inhibit-read-only t))
@@ -540,7 +553,12 @@
         ;; Note that -classify-specialed-notes returns reversed lists!
         (maphash (lambda (key nts) (zweirn--show-notes (nreverse nts))) ht)
         (newline)))
-    (dolist (nt (aref notes 2))
+    (when (aref notes 2)
+      (let ((ht (zweirn--classify-specialed-notes (aref notes 2))))
+        ;; Note that -classify-specialed-notes returns reversed lists!
+        (maphash (lambda (key nts) (zweirn--show-notes (nreverse nts))) ht)
+        (newline)))
+    (dolist (nt (aref notes 3))
       (let ((title (zweirn--note-title nt)))
         (insert zweirn-note-symbol (propertize (concat "[[" nt "]]") 'invisible t) "  ")
         (insert title)
@@ -924,11 +942,19 @@
     (setq zweirn-nv--search-string "")
     (make-local-variable 'zweirn-nv--notebook-notes)
     (setq zweirn-nv--notebook-notes '())
+    ;; Do all notebooks EXCEPT inbox.
     (dolist (target zweirn-notebooks)
       (let ((zweirn--notebook (cadr target)))
-        (let* ((notes (zweirn--notes-by-update-time (zweirn--notebook-path zweirn--notebook)))
-               (notes (zweirn--sort-by-title notes)))
-          (setq zweirn-nv--notebook-notes (cons (list (cadr target) notes) zweirn-nv--notebook-notes)))))
+        (when (not (equal zweirn--notebook zweirn-inbox-notebook))
+          (let* ((notes (zweirn--notes-by-update-time (zweirn--notebook-path zweirn--notebook)))
+                 (notes (zweirn--sort-by-title notes)))
+            (setq zweirn-nv--notebook-notes (cons (list (cadr target) notes) zweirn-nv--notebook-notes))))))
+    ;; Add inbox at the front - keep consistent with above?
+    (let* ((target (list 'ignore zweirn-inbox-notebook 'ignore))
+           (zweirn--notebook (cadr target)))
+      (let* ((notes (zweirn--notes-by-update-time (zweirn--notebook-path zweirn--notebook)))
+             (notes (zweirn--sort-by-title notes)))
+        (setq zweirn-nv--notebook-notes (cons (list (cadr target) notes) zweirn-nv--notebook-notes))))
     (zweirn--show-nv-search)))
 
 (defun zweirn--show-nv-search ()
@@ -1061,8 +1087,11 @@
     (concat path (file-name-nondirectory src))))
 
 (defun zweirn--resize-image (src tgt)
-  (shell-command-to-string
-   (format "%s -resize %dx '%s' '%s'" zweirn-convert-program zweirn-max-image-width src tgt)))
+  (let* ((cmd (format "%s -resize %dx '%s' '%s'" zweirn-convert-program zweirn-max-image-width src tgt))
+         result)
+    (setq result (shell-command cmd))
+    (when (> result 0)
+      (error "cannot run convert command to resize"))))
 
 (defun zweirn--get-image-width (src)
   (string-to-number
@@ -1086,7 +1115,8 @@
       (setq path (zweirn--copy-image src uuid))
       (setq name (file-name-nondirectory path))
       (markdown-insert-inline-image name path)
-      (markdown-display-inline-images))))
+      (when (display-images-p)
+        (markdown-display-inline-images)))))
 
 (defun zweirn-drag-n-drop-image (evt)
   "Invoked by [drag-n-drop] in Markdown notes opened by Zweirn."
