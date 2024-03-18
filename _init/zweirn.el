@@ -60,6 +60,7 @@
 (define-key zweirn-mode-map (kbd "q") 'zweirn-kill)
 (define-key zweirn-mode-map (kbd "s") 'zweirn-search)
 (define-key zweirn-mode-map (kbd "t") 'zweirn-today-note)
+(define-key zweirn-mode-map (kbd "w") 'zweirn-writing)
 (define-key zweirn-mode-map (kbd "/") 'zweirn-nv-search)
 
 (define-key zweirn-mode-map (kbd "D") 'zweirn-open-dired)
@@ -285,34 +286,43 @@
 
 (defun zweirn--rename-buffer-file-if-needed ()
   "Rename the current buffer file to account for a possible new title.
-   Added to after-save-hook in a note buffer"
+   Added to after-save-hook in a note buffer."
   ;; TODO: Write me!
   nil)
 
-(defun zweirn--open-note-in-markdown (fname)
-  (pop-to-buffer (find-file-noselect fname))
-  (when (fboundp 'markdown-mode)
-    ;; Enable markdown-mode and add functionality.
-    (markdown-mode)
-    (when (display-images-p)
-      (markdown-display-inline-images))
-    (when (not (member "zweirn" markdown-uri-types))
-      ;; Add "zweirn:" as a URI type.
-      ;; Annoyingly, looks like we need to reload markdown-mode to enable this change. 
-      (add-to-list 'markdown-uri-types "zweirn")
-      (load-library "markdown-mode")
-      ;; Intercept markdown--browse-url to allow opening a zweirn URI.
-      (advice-add 'markdown--browse-url :around
-                  (lambda (originalf url)
-                    (if (string-prefix-p "zweirn:" url)
-                        (message (concat "Not yet implemented: open " url))
-                      (funcall originalf url))))
-      (local-set-key [drag-n-drop] 'zweirn-drag-n-drop-image)))
-  (when (fboundp 'wc-mode) (wc-mode))
-  (when (fboundp 'auto-fill-mode) (auto-fill-mode))
-  ;; Add local hook to possibly rename after saving.
-  (add-hook 'after-save-hook 'zweirn--rename-buffer-file-if-needed nil t))
+(defun zweirn-create-writing-frame (buff)
+  nil)
 
+(defun zweirn-setup-writing-frame ()
+  nil)
+
+(defun zweirn--open-note-in-markdown (fname &optional writing)
+  (let ((buff (find-file-noselect fname)))
+    (if writing
+        (zweirn-create-writing-frame buff)
+      (pop-to-buffer buff))
+    (when (fboundp 'markdown-mode)
+      ;; Enable markdown-mode and add functionality.
+      (markdown-mode)
+      (markdown-display-inline-images)
+      (when (not (member "zweirn" markdown-uri-types))
+        ;; Add "zweirn:" as a URI type.
+        ;; Annoyingly, looks like we need to reload markdown-mode to enable this change.
+        (add-to-list 'markdown-uri-types "zweirn")
+        (load-library "markdown-mode")
+        ;; Intercept markdown--browse-url to allow opening a zweirn URI.
+        (advice-add 'markdown--browse-url :around
+                    (lambda (originalf url)
+                      (if (string-prefix-p "zweirn:" url)
+                          (message (concat "Not yet implemented: open " url))
+                        (funcall originalf url))))
+        (local-set-key [drag-n-drop] 'zweirn-drag-n-drop-image)))
+    (when (fboundp 'wc-mode) (wc-mode))
+    (when (fboundp 'auto-fill-mode) (auto-fill-mode))
+    ;; Add local hook to possibly rename after saving.
+    (add-hook 'after-save-hook 'zweirn--rename-buffer-file-if-needed nil t)
+    (when writing
+      (zweirn-setup-writing-frame))))
 
 
 (defun zweirn--read-first-lines (file n)
@@ -809,6 +819,14 @@
   (let ((nt (zweirn--current-name)))
     (if nt
         (zweirn--open-note-in-markdown (zweirn--note-path nt))
+      (message "Cursor not over a note"))))
+
+(defun zweirn-writing ()
+  "Load the note pointed to by the point in a WRITING buffer"
+  (interactive)
+  (let ((nt (zweirn--current-name)))
+    (if nt
+        (zweirn--open-note-in-markdown (zweirn--note-path nt) t)
       (message "Cursor not over a note"))))
 
 (defun zweirn-nv-read-note ()
