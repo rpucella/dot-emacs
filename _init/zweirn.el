@@ -59,6 +59,7 @@
 (define-key zweirn-mode-map (kbd "p") 'zweirn-move-prev-note)
 (define-key zweirn-mode-map (kbd "q") 'zweirn-kill)
 (define-key zweirn-mode-map (kbd "s") 'zweirn-search)
+(define-key zweirn-mode-map (kbd "t") 'zweirn-today-note)
 (define-key zweirn-mode-map (kbd "/") 'zweirn-nv-search)
 
 (define-key zweirn-mode-map (kbd "D") 'zweirn-open-dired)
@@ -278,6 +279,9 @@
 
 (defun zweirn--date-tag ()
   (format-time-string "%y/%m/%d %H:%M %A"))
+
+(defun zweirn--today ()
+  (format-time-string "PIN - %y/%m/%d %A"))
 
 (defun zweirn--rename-buffer-file-if-needed ()
   "Rename the current buffer file to account for a possible new title.
@@ -721,6 +725,37 @@
             (save-buffer)
             (kill-buffer))
         (message "Wait... buffer already exists?")))))
+
+
+(defun zweirn-today-note ()
+  "Open or create a TODAY note in inbox folder"
+  (interactive)
+  (catch 'done
+    (zweirn--create-notes-folder-if-needed)
+    ;; Force to work in the inbox.
+    (let* ((zweirn--notebook zweirn-inbox-notebook)
+           (title (zweirn--today))
+           (notes (zweirn--notes-by-update-time (zweirn--notebook-path zweirn--notebook)))
+           (fname)
+           (new-file)
+           (buff))
+      (dolist (nt notes)
+        (when (equal title (zweirn--note-title nt))
+          ;; Found it, so edit it.
+          (progn (zweirn--open-note-in-markdown (zweirn--note-path nt))
+                 (throw 'done nil))))
+      ;; If we make it here, the note doesn't exist.
+      (setq fname (zweirn--fresh-name))
+      (setq new-file (zweirn--note-path fname))
+      (setq buff (get-file-buffer new-file))
+      (if (null buff)
+          (progn (zweirn--open-note-in-markdown new-file)
+                 (newline)
+                 (insert (format "# %s" title))
+                 (newline)
+                 (newline))
+        (pop-to-buffer buff)))))
+
 
 (defun zweirn-coalesce-jots ()
   "If there are any jotted notes, coalesce them all into a new note and trash originals."

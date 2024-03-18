@@ -115,8 +115,8 @@
   ;; (custom-theme-set-faces 'green-phosphor
   ;;                        '(mode-line ((t (:foreground "black" :background "LimeGreen" :box nil)))))
   ;; (enable-theme 'green-phosphor)
-  (load-theme 'calm-forest t)
-  ;;(load-theme 'monokai t)
+  ;; (load-theme 'calm-forest t)
+  (load-theme 'monokai t)
   )
 
 
@@ -124,10 +124,11 @@
 (when window-system
   ;; WINDOW SYSTEM
   (setq default-frame-alist '((height . 40) (width . 120) (left . 24) (top . 24)))
-  (setup-theme)
+
   (setup-base-fonts)
   ;; Choose one, and choose wisely.
   (setup-monospace-font)
+  (setup-theme)
   ;; stop blinking
   (blink-cursor-mode 0)
   )
@@ -221,6 +222,7 @@
 (global-set-key (kbd "C-c n") 'zweirn)
 (global-set-key (kbd "C-c c") 'zweirn-create-note)
 (global-set-key (kbd "C-c j") 'zweirn-jot-note)
+(global-set-key (kbd "C-c t") 'zweirn-today-note)
 (global-set-key (kbd "C-c /") 'zweirn-nv-search)
 (global-set-key (kbd "C-c C") 'rp/cheat-sheet)
 (global-set-key (kbd "C-c s") 'shell)
