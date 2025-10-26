@@ -1,19 +1,48 @@
 
 ;; use M-x package-install-selected-packages when installing on a new system
 
-(require 'package)
-(require 'display-line-numbers)
+(require 'use-package)
 
-(setq package-archives
-      '(("GNU ELPA"     . "https://elpa.gnu.org/packages/")
-        ("MELPA Stable" . "https://stable.melpa.org/packages/")
-        ("MELPA"        . "https://melpa.org/packages/"))
-      package-archive-priorities
-      '(("MELPA Stable" . 10)
-        ("GNU ELPA"     . 5)
-        ("MELPA"        . 1)))
-;; Added by Package.el. Must be before any package configuration.
-(package-initialize)
+
+(use-package package
+  :config
+  (setq package-archives
+        '(("GNU ELPA"     . "https://elpa.gnu.org/packages/")
+          ("MELPA Stable" . "https://stable.melpa.org/packages/")
+          ("MELPA"        . "https://melpa.org/packages/"))
+        package-archive-priorities
+        '(("MELPA Stable" . 10)
+          ("GNU ELPA"     . 5)
+          ("MELPA"        . 1)))
+  ;; Added by Package.el. Must be before any package configuration.
+  (package-initialize))
+
+
+(use-package display-line-numbers
+  :config
+  (defun display-line-numbers--turn-on ()
+    ;; turn on line number mode for listed modes
+    (when (derived-mode-p 'prog-mode 'text-mode)
+      (display-line-numbers-mode)))
+  (global-display-line-numbers-mode))
+
+
+(use-package ido
+  :config
+  (setq ido-enable-flex-matching t)
+  (setq ido-everywhere t)
+  (setq ido-use-filename-at-point 'guess)
+  (setq ido-create-new-buffer 'always) ;; don't ask when creating new buffer
+  (ido-mode t))
+
+
+(use-package ws-butler
+  ;; Remove trailing whitespace on lines that have been changed.
+  ;; Cf: https://github.com/lewang/ws-butler
+  :config
+  (add-hook 'prog-mode-hook #'ws-butler-mode))
+
+
 
 ;; Identify machines + define defaults.
 
@@ -105,7 +134,7 @@
   (set-frame-font (face-font 'fixed-pitch))
   ;;(set-frame-font "-*-DejaVu Serif-normal-normal-normal-*-18-*-*-*-p-0-iso10646-1" nil t)
   ;;(set-face-font 'fixed-pitch "Hack")
-  (setq markdown-list-item-bullets '("▸" "•" "•" "•" "•" "•" "•"))
+  (setq markdown-list-item-bullets '("↳" "▸" "•" "•" "•" "•" "•" "•"))
   ;; Bar cursors look better with proportional fonts.
   (setq-default cursor-type 'bar)
   )
@@ -164,20 +193,6 @@
 ;      (remq 'process-kill-buffer-query-function
 ;            kill-buffer-query-functions))
 
-;; enable line numbers
-(defun display-line-numbers--turn-on ()
-  ;; turn on line number mode for listed modes
-  (when (derived-mode-p 'prog-mode 'text-mode)
-    (display-line-numbers-mode)))
-(global-display-line-numbers-mode)
-
-;; IDO
-(setq ido-enable-flex-matching t)
-(setq ido-everywhere t)
-(ido-mode 1)
-(setq ido-use-filename-at-point 'guess)
-(setq ido-create-new-buffer 'always) ;; don't ask when creating new buffer
-
 ;; use spaces for indentation in lieu of tabs
 (setq-default indent-tabs-mode nil)
 
@@ -190,25 +205,29 @@
 
 ;; Cannot put this in markdown-mode-hook, since needs to be set before
 ;; mode starts.
-(require 'markdown-mode)
-(setq-default markdown-hide-markup t)
-;; Fix markdown mode hrs to shave off some width to allow for line numbers.
-;; Basically, wrap a dynamic letf around `markdown-fontify-hrs` which rebinds
-;; `window-body-width` to give you back the width of the window minus something.
-;; Cf:
-;;   https://www.reddit.com/r/emacs/comments/bjgajb/what_is_the_preferred_way_to_dynamically_add_and/
-(defvar markdown-width-adjustment 50)
-(advice-add 'markdown-fontify-hrs :around
-            (lambda (originalf last)
-              (let ((curr-width (window-body-width)))
-                
-                (cl-letf (((symbol-function 'window-body-width)
-                           (lambda () (- curr-width markdown-width-adjustment))))
-                  (funcall originalf last)))))
+(use-package markdown-mode
+  :config
+  (setq-default markdown-hide-markup t)
+  ;; Fix markdown mode hrs to shave off some width to allow for line numbers.
+  ;; Basically, wrap a dynamic letf around `markdown-fontify-hrs` which rebinds
+  ;; `window-body-width` to give you back the width of the window minus something.
+  ;; Cf:
+  ;;   https://www.reddit.com/r/emacs/comments/bjgajb/what_is_the_preferred_way_to_dynamically_add_and/
+  (defvar markdown-width-adjustment 50)
+  (advice-add 'markdown-fontify-hrs :around
+              (lambda (originalf last)
+                (let ((curr-width (window-body-width)))
 
-(add-hook 'go-mode-hook
-          (lambda ()
-            (setq tab-width 4)))
+                  (cl-letf (((symbol-function 'window-body-width)
+                             (lambda () (- curr-width markdown-width-adjustment))))
+                    (funcall originalf last))))))
+
+(use-package go-mode
+  :config
+  (add-hook 'go-mode-hook
+            (lambda ()
+              (setq tab-width 4))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -226,7 +245,6 @@
 (global-set-key (kbd "C-c /") 'zweirn-nv-search)
 (global-set-key (kbd "C-c C") 'rp/cheat-sheet)
 (global-set-key (kbd "C-c s") 'shell)
-
 ;; I find this one more useful.
 ;; Original binding: ido-kill-buffer.
 ;; Another possibility: ido-kill-buffer-at-head.
@@ -256,6 +274,15 @@
 ;;
 ;; From: https://www.dr-qubit.org/emacs-misc/wc-mode.el
 
+(define-minor-mode wc-mode
+  "Toggle word-count mode.
+With no argument, this command toggles the mode.
+A non-null prefix argument turns the mode on.
+A null prefix argument turns it off.
+
+When enabled, the total number of characters, words, and lines is
+displayed in the mode-line.")
+
 (setq mode-line-position (assq-delete-all 'wc-mode mode-line-position))
 
 (setq mode-line-position
@@ -267,18 +294,3 @@
 		      (format " [%dw]"
 			      (count-words-region (point-min) (point-max))))))
 	  nil))))
-
-(define-minor-mode wc-mode
-  "Toggle word-count mode.
-With no argument, this command toggles the mode.
-A non-null prefix argument turns the mode on.
-A null prefix argument turns it off.
-
-When enabled, the total number of characters, words, and lines is
-displayed in the mode-line.")
-
-
-;; Remove trailing whitespace on lines that have been changed.
-;; Cf: https://github.com/lewang/ws-butler
-(require 'ws-butler)
-(add-hook 'prog-mode-hook #'ws-butler-mode)

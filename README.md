@@ -5,15 +5,23 @@ Nothing spectacular - just a way to share a single config across machines.
 
 To install:
 
-- remove existing `~/.emacs.d` folder
-- `ln -s . ~/.emacs.d`
+- replace existing `~/.emacs.d/init.el` file with the following:
 
-All initializations are in folder `_init` required by the initial `init.el`
+        (load (concat (file-name-as-directory user-emacs-directory)
+                      (file-name-as-directory "rp-init")
+                      "main.el") nil)
+
+- `ln -s ./rp-init ~/.emacs.d`
+- `ln -s ./rp-lisp ~/.emacs.d`
+
+All initializations are in folder `rp-init` required by the initial `init.el`
 
 Files not under source control:
 
-- `_init/custom.el` containing the `customize` entries
-- `_init/local.el` containing local initializations
+- `rp-init/custom.el` containing the `customize` entries
+- `rp-init/local.el` containing local initializations
+
+Files in `./rp-lisp` are my personal ELisp code projects. They may or may not be useful to you.
 
 
 ## References

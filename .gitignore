@@ -1,19 +1,7 @@
 *~
-/#*#
+.DS_Store
 
 # for local settings
-_init/local.el
-_init/custom.el
+rp-init/local.el
+rp-init/custom.el
 
-/elpa/
-/auto-save-list/
-/eshell/
-/ido.last
-/games
-/transient
-/url/
-/server/
-/network-security.data
-/diary
-/bookmarks
-/.cache/

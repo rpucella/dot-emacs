@@ -46,7 +46,7 @@
 (define-key zweirn-mode-map (kbd "TAB") 'zweirn-move-next-note)
 (define-key zweirn-mode-map (kbd "<backtab>") 'zweirn-move-prev-note)
 (define-key zweirn-mode-map (kbd "c") 'zweirn-create-note)
-(define-key zweirn-mode-map (kbd "d") 'zweirn-delete-note)
+(define-key zweirn-mode-map (kbd "k") 'zweirn-delete-note)
 (define-key zweirn-mode-map (kbd "e") 'zweirn-export-note)
 (define-key zweirn-mode-map (kbd "f") 'zweirn-show-name)
 (define-key zweirn-mode-map (kbd "g") 'zweirn-reload)
@@ -497,12 +497,12 @@
                                       collect ntt into pinned
                                     else if (zweirn--is-special (cdr ntt))
                                       collect ntt into specialed
-                                    else if (zweirn--is-tagged (cdr ntt))
-                                      collect ntt into tagged
+;;                                    else if (zweirn--is-tagged (cdr ntt))
+;;                                      collect ntt into tagged
                                     else
                                       collect ntt into other
                                     end
-                                    finally return (vector pinned specialed tagged other)))
+                                    finally return (vector pinned specialed nil other))) ;;tagged other)))
          (pinned (sort (aref classified-notes 0) (lambda (x y) (string-lessp (cdr x) (cdr y)))))
          (special (sort (aref classified-notes 1) (lambda (x y) (string-lessp (cdr x) (cdr y)))))
          (tagged (sort (aref classified-notes 2) (lambda (x y) (string-lessp (cdr x) (cdr y)))))

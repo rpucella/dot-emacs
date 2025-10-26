@@ -102,6 +102,7 @@ If STRING is nil, change the text in the region between positions FROM and TO."
   "Kill all buffers except *scratch*."
   (interactive)
   ;; TODO: Implement an exclusion list.
+  ;; TODO: Also figure out what to do with magit buffers that don't seem to kill cleanly.
   (dolist (buff (buffer-list))
     (let ((name (buffer-name buff)))
       (unless (or (equal ?\s (aref name 0))
