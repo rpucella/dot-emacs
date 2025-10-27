@@ -61,10 +61,10 @@
     result))
 
 ;; To allow loading of custom themes via load-theme
-(add-to-list 'custom-theme-load-path (concat-emacs-folder "_init/"))
+(add-to-list 'custom-theme-load-path (concat-emacs-folder "rp-init/"))
 
-(load (concat-emacs-folder "_init" "commands.el") nil)
-(load (concat-emacs-folder "_init" "zweirn.el") nil)
+(load (concat-emacs-folder "rp-init" "commands.el") nil)
+(load (concat-emacs-folder "rp-init" "zweirn.el") nil)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -72,7 +72,7 @@
 ;;  Customization via M-x customize
 ;;
 
-(setq custom-file (concat-emacs-folder "_init" "custom.el"))
+(setq custom-file (concat-emacs-folder "rp-init" "custom.el"))
 (load custom-file 'noerror)
 
 
@@ -265,7 +265,7 @@
   (setq mac-right-option-modifier 'none))
 
 ;; override with local settings
-(load (concat-emacs-folder "_init" "local.el") nil)
+(load (concat-emacs-folder "rp-init" "local.el") nil)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

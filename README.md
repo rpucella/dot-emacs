@@ -11,8 +11,8 @@ To install:
                       (file-name-as-directory "rp-init")
                       "main.el") nil)
 
-- `ln -s ./rp-init ~/.emacs.d`
-- `ln -s ./rp-lisp ~/.emacs.d`
+- `ln -s <absolute path to rp-init> ~/.emacs.d`
+- `ln -s <absolute path to rp-lisp> ~/.emacs.d`
 
 All initializations are in folder `rp-init` required by the initial `init.el`
 

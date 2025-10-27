@@ -18,7 +18,7 @@
 (defun rp/edit-init ()
   "Edit emacs initialization file"
   (interactive)
-  (find-file (concat-emacs-folder "_init" "main.el")))
+  (find-file (concat-emacs-folder "rp-init" "main.el")))
 
 
 (defun rp/embiggen (size)
