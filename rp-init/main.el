@@ -43,7 +43,6 @@
   (add-hook 'prog-mode-hook #'ws-butler-mode))
 
 
-
 ;; Identify machines + define defaults.
 
 (defvar rp/is-macos
@@ -245,6 +244,7 @@
 (global-set-key (kbd "C-c /") 'zweirn-nv-search)
 (global-set-key (kbd "C-c C") 'rp/cheat-sheet)
 (global-set-key (kbd "C-c s") 'shell)
+(global-set-key (kbd "C-c l") 'imenu-list)
 ;; I find this one more useful.
 ;; Original binding: ido-kill-buffer.
 ;; Another possibility: ido-kill-buffer-at-head.
