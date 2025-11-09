@@ -63,7 +63,12 @@
 (add-to-list 'custom-theme-load-path (concat-emacs-folder "rp-init/"))
 
 (load (concat-emacs-folder "rp-init" "commands.el") nil)
-(load (concat-emacs-folder "rp-init" "zweirn.el") nil)
+
+;; Load lisp code in rp-lisp/ directory.
+;; Switch to .elc?
+(when (file-directory-p (concat-emacs-folder "rp-lisp"))
+  (message "I'm here!")
+  (mapc 'load-library (file-expand-wildcards (concat-emacs-folder "rp-lisp" "*.el"))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -92,25 +97,23 @@
       (setq curr (cdr curr)))
     result))
     
-(defun setup-base-fonts ()
-  ;; Fixed pitch font is Hack.
-  ;; Variable pitch font is DejaVu Serif.
+(defun setup-fonts ()
   ;; TODO: Check to make sure fonts exist.
   ;; TODO: When is 'fixed-pitch-serif' used ?
   ;;  cf https://www.gnu.org/software/emacs/manual/html_node/emacs/Standard-Faces.html
+  ;; TODO: make it easier to switch between monospace and proportional space fonts.
+  ;;  cf  https://benghancock.github.io/blog/2022/tao-of-acme.html
   ;;(set-face-attribute 'fixed-pitch nil :font "Hack-12")
-  ;;(set-face-attribute 'variable-pitch nil :font "DejaVu Serif-12")
   (set-face-attribute 'fixed-pitch nil :font "Input Mono Narrow-12")
   (set-face-attribute 'variable-pitch nil :font "Input Sans Narrow-12")
-  ;; Make sure line numbers are always fixed pitch.
+  (set-face-font 'default (face-font 'fixed-pitch))
   (set-face-font 'line-number (face-font 'fixed-pitch))
-  ;; Force some modes to be fixed-pitch (shell, etc)
-  ;;  cf https://emacs.stackexchange.com/questions/3038/using-a-different-font-for-each-major-mode
-  (add-hook 'after-change-major-mode-hook
-            (lambda ()
-              (when (some-derived-mode-p fixed-pitch-modes)
-                (fixed-pitch))))
-  )
+  (set-frame-font (face-font 'fixed-pitch))
+  (setq markdown-list-item-bullets '("↳" "▸" "•" "•" "•" "•" "•" "•")))
+  ;; (add-hook 'after-change-major-mode-hook
+  ;;     (lambda ()
+  ;;       (when (some-derived-mode-p fixed-pitch-modes)
+  ;;         (fixed-pitch)))))
 
 (defun fixed-pitch ()
   "Switch the current buffer to the default fixed pitch font"
@@ -118,25 +121,6 @@
   (setq buffer-face-mode-face 'fixed-pitch)
   (buffer-face-mode))
 
-(defun setup-monospace-font ()
-  ;; Monospace - easy peasy.
-  (set-face-font 'default (face-font 'fixed-pitch))
-  ;(set-frame-font (face-font 'default))
-  (set-frame-font (face-font 'fixed-pitch))
-  )
-
-(defun setup-proportional-font ()
-  ;; TODO: make it easier to switch between monospace and proportional space fonts.
-  ;;  cf  https://benghancock.github.io/blog/2022/tao-of-acme.html
-  (set-face-font 'default (face-font 'variable-pitch))
-  ;(set-frame-font (face-font 'default))
-  (set-frame-font (face-font 'fixed-pitch))
-  ;;(set-frame-font "-*-DejaVu Serif-normal-normal-normal-*-18-*-*-*-p-0-iso10646-1" nil t)
-  ;;(set-face-font 'fixed-pitch "Hack")
-  (setq markdown-list-item-bullets '("↳" "▸" "•" "•" "•" "•" "•" "•"))
-  ;; Bar cursors look better with proportional fonts.
-  (setq-default cursor-type 'bar)
-  )
 
 (defun setup-theme ()
   ;; (load-theme 'green-phosphor t)
@@ -144,27 +128,25 @@
   ;;                        '(mode-line ((t (:foreground "black" :background "LimeGreen" :box nil)))))
   ;; (enable-theme 'green-phosphor)
   ;; (load-theme 'calm-forest t)
-  (load-theme 'monokai t)
-  )
+  (load-theme 'monokai t))
 
+(defun setup-cursor ()
+  ;; setup cursor (after theme for color)
+  (setq-default cursor-type 'box)
+  (set-face-attribute 'cursor nil :background "red")
+  (blink-cursor-mode 0))
 
 
 (when window-system
   ;; WINDOW SYSTEM
   (setq default-frame-alist '((height . 40) (width . 120) (left . 24) (top . 24)))
-
-  (setup-base-fonts)
-  ;; Choose one, and choose wisely.
-  (setup-monospace-font)
+  (setup-fonts)
   (setup-theme)
-  ;; stop blinking
-  (blink-cursor-mode 0)
-  )
+  (setup-cursor))
 
 (when (not window-system)
   ;; TEXT SYSTEM
-  (menu-bar-mode 0)
-  )
+  (menu-bar-mode 0))
     
 (defun --flash-mode-line ()
   (interactive)
@@ -266,6 +248,9 @@
 
 ;; override with local settings
 (load (concat-emacs-folder "rp-init" "local.el") nil)
+;; Load lisp code in local-lisp/ directory.
+(when (file-directory-p (concat-emacs-folder "local-lisp"))
+  (mapc 'load-library (file-expand-wildcards (concat-emacs-folder "local-lisp" "*.el"))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
