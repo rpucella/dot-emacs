@@ -10,13 +10,22 @@
 ;; - shows a series of options
 ;; - hitting an option navigates to a new scene
 
+
 ;; Wish list:
 ;; - remove internal so that everything in the game has a source on disk
 ;; - ability to run the game in "dev" mode
 ;;     - track state at every point?
 ;;     - edit scene from within the game
-;; - run multiple Twine games
-;;     - each buffer tracks its own information
+;; - cleaner title in mode line
+;;     twine: <title>
+;; - add shortcuts for dev keys
+;;     (e)dit
+;;     refresh(g)
+;;     refresh (G)ame
+;;     game (n)otes
+;;     (o)pen game directory
+;;     edit game (f)ile
+;; - use a transient menu instead of this fake one?
 
 (require 'widget)
 
@@ -61,9 +70,10 @@
 (defun twine (game-file-name)
   ;; M-x twine to start a game
   (interactive (list (read-file-name "Game filename: ")))
-  (let* ((name (format "Twine: %s" (file-name-nondirectory game-file-name)))
-         (buff (get-buffer-create name))
-         (game-obj (twine--load-game game-file-name)))
+  (let* ((game-obj (twine--load-game game-file-name))
+         (game-title (plist-get (plist-get game-obj :game) :title))
+         (name (format "twine: %s" game-title))
+         (buff (get-buffer-create name)))
     ;; check if buffer exists?
     (switch-to-buffer buff)
     (twine-mode)

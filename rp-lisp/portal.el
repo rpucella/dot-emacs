@@ -14,7 +14,7 @@
 
 
 (defun portal (title description links)
-  (let* ((name (format "Portal: %s" title))
+  (let* ((name (format "portal: %s" title))
          (buff (get-buffer-create name)))
     ;; check if buffer exists?
     (switch-to-buffer buff)
