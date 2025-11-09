@@ -279,3 +279,6 @@ displayed in the mode-line.")
 		      (format " [%dw]"
 			      (count-words-region (point-min) (point-max))))))
 	  nil))))
+
+
+(add-hook 'emacs-lisp-mode-hook 'paredit-mode)
