@@ -364,3 +364,6 @@
       (insert (format "%s\n\n" (twine--get-text p))))
     (fill-region (point-min) (point-max))
     (buffer-substring (point-min) (point-max))))
+
+
+(provide 'twine)
