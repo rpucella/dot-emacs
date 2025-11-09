@@ -812,6 +812,8 @@
         (message (concat "Note file: " nt))
       (message "Cursor not over a note"))))
 
+(defun zweirn-open-note (note-file)
+  (zweirn--open-note-in-markdown note-file))
 
 (defun zweirn-read-note ()
   "Load the note pointed to by the point in a *notes* buffer"
