@@ -220,6 +220,7 @@
         (widget-insert (format "%s\n" htext))
         (widget-insert (format "%s\n\n" (make-string (length htext) ?=)))))
     (widget-insert (twine--fill-paragraphs text))
+    (widget-insert "\n")
     (dolist (opt options)
       (widget-create 'link
                      :button-prefix "* "

@@ -42,6 +42,7 @@
   :config
   (add-hook 'prog-mode-hook #'ws-butler-mode))
 
+(use-package olivetti)
 
 ;; Identify machines + define defaults.
 
@@ -103,9 +104,10 @@
   ;;  cf https://www.gnu.org/software/emacs/manual/html_node/emacs/Standard-Faces.html
   ;; TODO: make it easier to switch between monospace and proportional space fonts.
   ;;  cf  https://benghancock.github.io/blog/2022/tao-of-acme.html
-  ;;(set-face-attribute 'fixed-pitch nil :font "Hack-12")
-  (set-face-attribute 'fixed-pitch nil :font "Input Mono Narrow-12")
-  (set-face-attribute 'variable-pitch nil :font "Input Sans Narrow-12")
+  (set-face-attribute 'fixed-pitch nil :font "Hack-12")
+  ;; (set-face-attribute 'fixed-pitch nil :font "Courier Prime-12")
+  ;; (set-face-attribute 'fixed-pitch nil :font "Input Mono Narrow-12")
+  ;; (set-face-attribute 'variable-pitch nil :font "Input Sans Narrow-12")
   (set-face-font 'default (face-font 'fixed-pitch))
   (set-face-font 'line-number (face-font 'fixed-pitch))
   (set-frame-font (face-font 'fixed-pitch))
