@@ -229,6 +229,7 @@
 (global-set-key (kbd "C-c C") 'rp/cheat-sheet)
 (global-set-key (kbd "C-c s") 'shell)
 (global-set-key (kbd "C-c l") 'imenu-list)
+(global-set-key (kbd "C-c w") 'writing-mode)
 ;; I find this one more useful.
 ;; Original binding: ido-kill-buffer.
 ;; Another possibility: ido-kill-buffer-at-head.
@@ -282,5 +283,9 @@ displayed in the mode-line.")
 			      (count-words-region (point-min) (point-max))))))
 	  nil))))
 
+;; Add eldoc mode selectively
+;;
 
-(add-hook 'emacs-lisp-mode-hook 'paredit-mode)
+(global-eldoc-mode -1)
+(add-hook 'emacs-lisp-mode-hook #'paredit-mode)
+(add-hook 'emacs-lisp-mode-hook #'eldoc-mode)
