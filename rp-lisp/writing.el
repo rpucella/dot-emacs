@@ -17,6 +17,9 @@
 (defvar writing-mode-map (make-sparse-keymap)
   "Keymap while writing-frame-mode is active.")
 
+(defvar writing-font-family "Courier Prime")
+(defvar writing-font-size 160)
+(defvar writing-body-width (- fill-column 2))
 
 (define-minor-mode writing-mode
   "A temporary minor mode to be activated only specific to a buffer."
@@ -31,12 +34,12 @@
 
 (defun writing-mode--enable ()
   ;; Remember these so that we can restore them!
-  (make-local-variable 'writing-mode--saved-settings)
+  ;;(make-local-variable 'writing-mode--saved-settings)
   (let* ((foregrounds (mapcar (lambda (face)
                                 (if (stringp (face-attribute face :foreground))
                                     (cons face (face-attribute face :foreground))
                                   nil)) (face-list))))
-    (setq writing-mode--saved-settings
+    (setq-local writing-mode--saved-settings
           (list
            :mode-line mode-line-format
            :line-numbers (if display-line-numbers-mode 1 0)
@@ -50,12 +53,16 @@
     (display-line-numbers-mode 0)
     ;; Nice margins.
     (olivetti-mode 1)
+    (setq-local olivetti-body-width writing-body-width)
     ;; Full frame if we were split.
     (delete-other-windows)
     (face-remap-add-relative 'fringe '(:background "white"))
     (mapc (lambda (fcpair) (when fcpair
                              (face-remap-add-relative (car fcpair) '(:foreground "black")))) foregrounds)
-    (setq buffer-face-mode-face '(:family "Courier Prime" :height 160 :background "white" :foreground "black"))
+    (setq buffer-face-mode-face `(:family ,writing-font-family
+                                  :height ,writing-font-size
+                                  :background "white"
+                                  :foreground "black"))
     (buffer-face-mode 1)))
 
 

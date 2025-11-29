@@ -97,6 +97,8 @@ If STRING is nil, change the text in the region between positions FROM and TO."
   (mark-paragraph)
   (rp/unfill-region (mark) (point)))
 
+;; Bind the command to M-Q (to undo M-q)?
+(keymap-global-set "M-Q" #'rp/unfill-paragraph)
 
 (defun rp/clean-emacs ()
   "Kill all buffers except *scratch*."
