@@ -60,7 +60,6 @@
 (define-key zweirn-mode-map (kbd "q") 'zweirn-kill)
 (define-key zweirn-mode-map (kbd "s") 'zweirn-search)
 (define-key zweirn-mode-map (kbd "t") 'zweirn-today-note)
-(define-key zweirn-mode-map (kbd "w") 'zweirn-writing)
 (define-key zweirn-mode-map (kbd "/") 'zweirn-nv-search)
 
 (define-key zweirn-mode-map (kbd "D") 'zweirn-open-dired)
@@ -290,17 +289,8 @@
   ;; TODO: Write me!
   nil)
 
-(defun zweirn-create-writing-frame (buff)
-  nil)
-
-(defun zweirn-setup-writing-frame ()
-  nil)
-
-(defun zweirn--open-note-in-markdown (fname &optional writing)
+(defun zweirn--open-note-in-markdown (fname)
   (let ((buff (find-file-noselect fname)))
-    (if writing
-        (zweirn-create-writing-frame buff)
-      (pop-to-buffer buff))
     (when (fboundp 'markdown-mode)
       ;; Enable markdown-mode and add functionality.
       (markdown-mode)
@@ -320,9 +310,7 @@
     (when (fboundp 'wc-mode) (wc-mode))
     (when (fboundp 'auto-fill-mode) (auto-fill-mode))
     ;; Add local hook to possibly rename after saving.
-    (add-hook 'after-save-hook 'zweirn--rename-buffer-file-if-needed nil t)
-    (when writing
-      (zweirn-setup-writing-frame))))
+    (add-hook 'after-save-hook 'zweirn--rename-buffer-file-if-needed nil t)))
 
 
 (defun zweirn--read-first-lines (file n)
@@ -821,14 +809,6 @@
   (let ((nt (zweirn--current-name)))
     (if nt
         (zweirn--open-note-in-markdown (zweirn--note-path nt))
-      (message "Cursor not over a note"))))
-
-(defun zweirn-writing ()
-  "Load the note pointed to by the point in a WRITING buffer"
-  (interactive)
-  (let ((nt (zweirn--current-name)))
-    (if nt
-        (zweirn--open-note-in-markdown (zweirn--note-path nt) t)
       (message "Cursor not over a note"))))
 
 (defun zweirn-nv-read-note ()

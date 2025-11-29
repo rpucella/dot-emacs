@@ -12,6 +12,7 @@
 ;; - minibuffer in white as well?
 
 (require 'olivetti)
+(require 'face-remap)
 
 (defvar writing-mode-map (make-sparse-keymap)
   "Keymap while writing-frame-mode is active.")
