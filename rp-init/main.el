@@ -202,7 +202,7 @@
                 (let ((curr-width (window-body-width)))
 
                   (cl-letf (((symbol-function 'window-body-width)
-                             (lambda () (- curr-width markdown-width-adjustment))))
+                             (lambda () (/ curr-width 2))))
                     (funcall originalf last))))))
 
 (use-package go-mode
