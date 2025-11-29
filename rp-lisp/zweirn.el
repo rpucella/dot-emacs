@@ -291,6 +291,7 @@
 
 (defun zweirn--open-note-in-markdown (fname)
   (let ((buff (find-file-noselect fname)))
+    (pop-to-buffer buff)
     (when (fboundp 'markdown-mode)
       ;; Enable markdown-mode and add functionality.
       (markdown-mode)
