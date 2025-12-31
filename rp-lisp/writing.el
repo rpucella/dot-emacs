@@ -53,7 +53,7 @@
     (display-line-numbers-mode 0)
     ;; Nice margins.
     (olivetti-mode 1)
-    (setq-local olivetti-body-width writing-body-width)
+    ;;(setq-local olivetti-body-width writing-body-width)
     ;; Full frame if we were split.
     (delete-other-windows)
     (face-remap-add-relative 'fringe '(:background "white"))
