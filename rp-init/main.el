@@ -284,8 +284,14 @@ displayed in the mode-line.")
 	  nil))))
 
 ;; Add eldoc mode selectively
-;;
 
 (global-eldoc-mode -1)
 (add-hook 'emacs-lisp-mode-hook #'paredit-mode)
 (add-hook 'emacs-lisp-mode-hook #'eldoc-mode)
+
+
+;; Show time in the mode line
+
+(setq display-time-format "%H:%M") ; 24 hours format
+(setq display-time-default-load-average nil)
+(display-time-mode 1)
