@@ -221,8 +221,10 @@
 (global-set-key (kbd "RET") 'newline-and-indent)  ;; indent automatically
 (global-set-key (kbd "C-c x") 'execute-extended-command)
 (global-set-key (kbd "C-c f") 'rp/toggle-fullscreen)
-(global-set-key (kbd "C-c n") 'zweirn)
-(global-set-key (kbd "C-c c") 'zweirn-create-note)
+;;(global-set-key (kbd "C-c n") 'zweirn)
+;;(global-set-key (kbd "C-c c") 'zweirn-create-note)
+(global-set-key (kbd "C-c n") 'zen)
+(global-set-key (kbd "C-c c") 'zen-create-note)
 (global-set-key (kbd "C-c j") 'zweirn-jot-note)
 (global-set-key (kbd "C-c t") 'zweirn-today-note)
 (global-set-key (kbd "C-c /") 'zweirn-nv-search)

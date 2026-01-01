@@ -217,8 +217,6 @@
 (defvar zweirn--buffer-prefix-nv "zweirn-nv")
 (defvar zweirn--buffer-prefix-search "zweirn-search")
 
-
-
 ;; MAIN ENTRY POINT
 
 (defun zweirn--is-inbox ()
@@ -327,7 +325,7 @@
 
 
 (defun zweirn--read-first-non-empty-line (file)
-  "Return first non-empty line of FILE." 
+  "Return first non-empty line of FILE."
   (with-temp-buffer
     (insert-file-contents-literally file)
     (let ((result nil))
@@ -710,7 +708,7 @@
       ;; TODO: if the file/buffer already exists, don't insert the # Note thing.
       ;; Also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
       (if (null buff)
-          (progn 
+          (progn
             (set-buffer (find-file-noselect new-file))
             (newline)
             (insert (format "# JOT - %s" title))
@@ -792,7 +790,7 @@
                   (save-buffer)
                   (kill-buffer))
                 (zweirn--show))))))))
-  
+
 (defun zweirn-show-name ()
   "Show the name of the file containing the number on the current line."
   (interactive)
@@ -1008,7 +1006,7 @@
           (newline)
           (setq seen-one t))))
     seen-one))
-      
+
 (defun zweirn--add-to-search (str)
   (setq zweirn-nv--search-string (concat zweirn-nv--search-string str))
   (zweirn--show-nv-search))
