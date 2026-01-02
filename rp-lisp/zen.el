@@ -19,7 +19,7 @@
 
 (defvar zen-home-notebook "HOME")
 
-(defvar zen-default-extension "org") ; Default extension for markdown files.
+(defvar zen-default-extension "md") ; Default extension for new notes.
 
 (defvar zen-trash-notebook "_trash") ; Trash notebook.
 
@@ -70,13 +70,30 @@
   (goto-char (point-min))))
 
 
+(define-button-type 'zen--note-button
+  'face nil
+  'action (lambda (btn) (zen--open-note (button-get btn 'note))))
+
 (defun zen--render-notes (notes)
   "Render a list of notes where each note is a button opening the note."
-  (dolist (note notes)
-    (insert-text-button (format "%s  %s" zen-note-symbol (zen--strip-tag (plist-get note :title) '("PIN")))
-                        'face '(:underline nil :inherit default)
-                        'action (lambda (btn) (zen--open-note note)))
-    (insert "\n")))
+  (let* ((start-button nil)
+         (start-tag nil)
+         (end-tag nil))
+    (dolist (note notes)
+      (setq start-button (point))
+      (insert (format "%s  " zen-note-symbol))
+      (setq start-tag (point))
+      (setq end-tag (point))
+      (when (and (plist-get note :tag) (not (equal (plist-get note :tag) "PIN")))
+        (insert (plist-get note :tag))
+        (setq end-tag (point))
+        (insert " - "))
+      (insert (plist-get note :title))
+      (make-button start-button (point)
+                          'type 'zen--note-button
+                          'note note)
+      (add-face-text-property start-tag end-tag font-lock-function-name-face)
+      (insert "\n"))))
 
 (defun zen--open-note (note)
   (let ((buff (find-file-noselect (plist-get note :path))))
@@ -96,7 +113,6 @@
   ;; TODO: Write me!
   nil)
 
-
 (defvar zen--note-filter
   (rx string-start
       (or "Z-" "zen-")
@@ -110,16 +126,21 @@
   (let* ((path (zen--notebook-path notebook))
          (raw-notes (directory-files (directory-file-name path) nil zen--note-filter t))
          (notes (mapcar (zen--process-note notebook) raw-notes)))
-    (sort notes (lambda (x y) (string-lessp (plist-get x :title) (plist-get y :title))))))
+    (sort notes (lambda (x y) (string-lessp (plist-get x :sort) (plist-get y :sort))))))
 
 (defun zen--process-note (notebook)
   (lambda (note)
-    (let* ((title (or (zen--note-title notebook note) note))
+    (let* ((full-title (or (zen--note-title notebook note) note))
+           (title-tag (zen--split-title-tag full-title))
+           (tag (car title-tag))
+           (title (cdr title-tag))
            (path (zen--note-path notebook note))
-           (class (zen--note-class title))
+           (class (zen--note-class tag))
            (type (zen--note-type note)))
       (list :raw note
             :title title
+            :tag tag
+            :sort (downcase full-title)
             :path path
             :class class
             :type type))))
@@ -130,26 +151,24 @@
 (defun zen--note-path (notebook note)
   (concat (file-name-as-directory zen-root-directory) (file-name-as-directory notebook) note))
 
-(defun zen--note-class (title)
-  (let ((tag (zen--title-tag title)))
-    (cond ((member tag '("PIN")) :pinned)
-          ((member tag zen-highlighted-tags) :highlighted)
-          (t :regular))))
+(defun zen--note-class (tag)
+  (cond ((member tag '("PIN")) :pinned)
+        ((member tag zen-highlighted-tags) :highlighted)
+        (t :regular)))
 
-(defun zen--title-tag (title)
+;; Merge with zen--note-title?
+(defun zen--split-title-tag (title)
   "Extract tag from TITLE of a note."
-  (let ((case-fold-search nil))
-    ;; Search case insensitively.
+  (let* ((case-fold-search nil)
+         (tag nil))
+    ;; Search case sensitively.
     (save-match-data
-      (and (string-match "^\\([A-Z0-9 ]+\\) - " title)
-           (match-string 1 title)))))
+      (setq tag (and (string-match "^\\([A-Z0-9 ]+\\) - " title)
+                     (match-string 1 title)))
+      (if tag
+          (cons tag (substring title (+ (length tag) 3)))
+        (cons nil title)))))
 
-(defun zen--strip-tag (title tags)
-  "Strip any leading tag (including the tailing dash) appearing in TAGS from TITLE."
-  (let* ((tag (zen--title-tag title)))
-    (if (member tag tags)
-        (substring title (+ (length tag) 3))
-      title)))
 
 (defun zen--note-title (notebook note)
   "Get title of a NOTE (depending on note file type)."
@@ -262,11 +281,7 @@
   (let* ((fname (zen--fresh-name))
          (notebook (zen--defaulted-notebook))
          (new-file (zen--note-path notebook fname))
-         (new-note (list :raw fname
-                         :title title
-                         :path new-file
-                         :class (zen--note-class title)
-                         :type (zen--note-type fname)))
+         (new-note (list :path new-file))
          (buff (get-file-buffer new-file)))
     ;; TODO: if the file/buffer already exists, don't insert the # Note thing.
     ;; Also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
