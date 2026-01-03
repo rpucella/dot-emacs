@@ -1,34 +1,31 @@
 ;;; zen.el --- Note-taking environment     -*- lexical-binding: t -*-
 
 
+
+;; Customization variables
+
+(defvar zen-root-directory "~/.notes")
+(defvar zen-export-directory "~/Desktop")
+(defvar zen-pinned-tags '("PIN"))
+(defvar zen-highlighted-tags '("JOT" "SCRATCH"))
+(defvar zen-note-symbol "≻")  ; Nice choices: * ⊳  ≻  ►
+(defvar zen-max-jot-title 60)
+(defvar zen-home-notebook "HOME")
+(defvar zen-default-extension "md") ; Default extension for new notes.
+(defvar zen-trash-notebook "_trash") ; Trash notebook.
+(defvar zen-time-format "%y/%m/%d %A")
+(defvar zen-today-note-title "TODAY")
+
+
+;; Zen mode
+
 (define-derived-mode zen-mode
   special-mode "Zen"
   "Major mode for managing text notes.")
 
-(defvar zen-root-directory
-  (concat (file-name-as-directory (getenv "HOME")) ".notes"))
-
-(defvar zen-export-directory
-  (concat (file-name-as-directory (getenv "HOME")) "Desktop"))
-
-(defvar zen-highlighted-tags '("JOT" "SCRATCH"))
-
-(defvar zen-note-symbol "≻")  ; Nice choices: * ⊳  ≻  ►
-
-(defvar zen-max-jot-title 60)
-
-(defvar zen-home-notebook "HOME")
-
-(defvar zen-default-extension "md") ; Default extension for new notes.
-
-(defvar zen-trash-notebook "_trash") ; Trash notebook.
-
-(defvar zen-time-format "%y/%m/%d %A")
-
-
 (define-key zen-mode-map (kbd "o") #'zen-open-notebook)
 (define-key zen-mode-map (kbd "c") #'zen-create-note)
-
+(define-key zen-mode-map (kbd "/") #'zen-nv)
 
 (defun zen ()
   (interactive)
@@ -39,11 +36,8 @@
     (setq-local revert-buffer-function (lambda (&rest ignore) (zen--render)))
     (setq-local zen--default-mode-line-buffer-identification mode-line-buffer-identification)
     (button-mode)
-    ;; Font lock.
-    (setq font-lock-defaults '(zen--highlights t))
-    (defstate **state** (:notebook :refresh) #'zen--render)
-    ;; The :refresh thing is a cop out for forcing a refresh in case of a change.
-    (setstate :notebook zen-home-notebook :refresh t)))
+    (defstate **state** (:notebook) #'zen--render)
+    (setstate :notebook zen-home-notebook)))
 
 ;; Do we have the notion of derived state, where some state properties get
 ;; automatically recomputed when other properties change?
@@ -59,12 +53,35 @@
   (erase-buffer)
   (setq-local mode-line-buffer-identification
               (append zen--default-mode-line-buffer-identification (list (format "[%s]" notebook))))
-  (insert (format "Notebook: %s\n\n" notebook))
+  (insert (format "\nNotebook: %s\n" notebook))
   (dolist (sub-notes (list pinned-notes highlighted-notes regular-notes))
     (when sub-notes
-      (zen--render-notes sub-notes)
-      (insert "\n")))
-  (goto-char (point-min))))
+      (setq seen-one t)
+      (insert "\n")
+      (dolist (note sub-notes)
+        (zen--render-note note))))
+  (goto-char (point-min))
+  (when seen-one (forward-button 1))))
+
+
+(defun zen--render-note (note)
+  "Render a note as a text button opening the note."
+  (let* ((start-button (point))
+         (start-tag nil)
+         (end-tag nil))
+    (insert (format "%s  " zen-note-symbol))
+    (setq start-tag (point))
+    (setq end-tag (point))
+    (when (and (plist-get note :tag) (not (member (plist-get note :tag) zen-pinned-tags)))
+      (insert (plist-get note :tag))
+      (setq end-tag (point))
+      (insert " - "))
+    (insert (plist-get note :title))
+    (make-button start-button (point)
+                 'type 'zen--note-button
+                 'note note)
+    (add-face-text-property start-tag end-tag font-lock-function-name-face)
+    (insert "\n")))
 
 
 (define-button-type 'zen--note-button
@@ -76,30 +93,11 @@
             (define-key map (kbd "k") #'zen-delete-note)
             (define-key map (kbd "m") #'zen-move-note)
             map)
-  'action (lambda (btn) (zen--open-note (button-get btn 'note))))
+  'action (lambda (btn) (zen-open-note (button-get btn 'note))))
 
-(defun zen--render-notes (notes)
-  "Render a list of notes where each note is a button opening the note."
-  (let* ((start-button nil)
-         (start-tag nil)
-         (end-tag nil))
-    (dolist (note notes)
-      (setq start-button (point))
-      (insert (format "%s  " zen-note-symbol))
-      (setq start-tag (point))
-      (setq end-tag (point))
-      (when (and (plist-get note :tag) (not (equal (plist-get note :tag) "PIN")))
-        (insert (plist-get note :tag))
-        (setq end-tag (point))
-        (insert " - "))
-      (insert (plist-get note :title))
-      (make-button start-button (point)
-                          'type 'zen--note-button
-                          'note note)
-      (add-face-text-property start-tag end-tag font-lock-function-name-face)
-      (insert "\n"))))
 
-(defun zen--open-note (note)
+(defun zen-open-note (note)
+  (interactive (list (zen--note-at-point)))
   (let ((buff (find-file-noselect (plist-get note :path))))
     (pop-to-buffer buff)
     (when (eq (plist-get note :type) :markdown)
@@ -109,13 +107,193 @@
     (when (fboundp 'wc-mode) (wc-mode))
     (when (fboundp 'auto-fill-mode) (auto-fill-mode))
     ;; Add local hook to possibly rename after saving.
-    (add-hook 'after-save-hook 'zen--rename-buffer-file-if-needed nil t)))
+    ;; (add-hook 'after-save-hook 'zen--rename-buffer-file-if-needed nil t)
+    ))
 
 
-(defun zen--rename-buffer-file-if-needed ()
-  "Rename the current buffer file to account for a possible new title."
-  ;; TODO: Write me!
-  nil)
+(defun zen-create-note (title)
+  "Create a note in current notebook (or home notebook if not in a zen buffer)."
+  (interactive (list (let ((default (zen--default-title)))
+                       (read-string (format "Title (%s): " default) nil nil default))))
+  (let* ((fname (zen--fresh-name))
+         (notebook (zen--defaulted-notebook))
+         (new-file (zen--note-path notebook fname))
+         (new-note (list :path new-file))
+         (buff (get-file-buffer new-file)))
+    ;; TODO: if the file/buffer already exists, don't insert the # Note thing.
+    ;; Also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
+    (if (null buff)
+        (progn
+          (zen-open-note new-note)
+          (newline)
+          ;; This depends on type, no?
+          (insert (format "# %s" title))
+          (newline)
+          (newline))
+      (pop-to-buffer buff))))
+
+
+(defun zen-delete-note ()
+  "Delete note under point."
+  (interactive)
+  (let* ((note (zen--note-at-point))
+         (prompt nil)
+         (new-path nil))
+    (setq prompt (format "Delete note [%s]? " (plist-get note :title)))
+    (when (yes-or-no-p prompt)
+      ;; Move it to the trash folder.
+      (setq new-path (zen--note-path zen-trash-notebook (plist-get note :raw)))
+      (rename-file (plist-get note :path) new-path)
+      (refstate))))
+
+
+(defun zen-name-note ()
+  "Show the full path of note under point."
+  (interactive)
+  (let* ((note (zen--note-at-point)))
+    (message (plist-get note :path))))
+
+
+(defun zen-move-note ()
+  "Move note under point to notebook."
+  (interactive)
+  (let* ((note (zen--note-at-point))
+         (target-notebook nil)
+         (new-path nil))
+    (setq target-notebook (zen--query-notebook "Target notebook: "))
+    (setq new-path (zen--note-path target-notebook (plist-get note :raw)))
+    (rename-file (plist-get note :path) new-path)
+    (refstate)))
+
+
+(defun zen-export-note ()
+  "Export (copy) note under point to export folder."
+  (interactive)
+  (let* ((note (zen--note-at-point))
+         (full-title (plist-get note :full-title))
+         (default-name (format "%s.%s" full-title (zen--note-extension note)))
+         (name (read-string (format "Export name [%s]: " default-name) nil nil default-name)))
+    (copy-file (plist-get note :path) (zen--concat-path zen-export-directory name))))
+
+
+(defun zen-open-notebook (notebook)
+  (interactive (list (zen--query-notebook "Open notebook: ")))
+  (setstate :notebook notebook))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Zen NV Search mode
+
+(define-derived-mode zen-nv-mode
+  special-mode "Zen NV"
+  "Major mode for searching Zen note titles.")
+
+(define-key zen-nv-mode-map (kbd "a") (lambda () (interactive) (zen--add-to-search "a")))
+(define-key zen-nv-mode-map (kbd "b") (lambda () (interactive) (zen--add-to-search "b")))
+(define-key zen-nv-mode-map (kbd "c") (lambda () (interactive) (zen--add-to-search "c")))
+(define-key zen-nv-mode-map (kbd "d") (lambda () (interactive) (zen--add-to-search "d")))
+(define-key zen-nv-mode-map (kbd "e") (lambda () (interactive) (zen--add-to-search "e")))
+(define-key zen-nv-mode-map (kbd "f") (lambda () (interactive) (zen--add-to-search "f")))
+(define-key zen-nv-mode-map (kbd "g") (lambda () (interactive) (zen--add-to-search "g")))
+(define-key zen-nv-mode-map (kbd "h") (lambda () (interactive) (zen--add-to-search "h")))
+(define-key zen-nv-mode-map (kbd "i") (lambda () (interactive) (zen--add-to-search "i")))
+(define-key zen-nv-mode-map (kbd "j") (lambda () (interactive) (zen--add-to-search "j")))
+(define-key zen-nv-mode-map (kbd "k") (lambda () (interactive) (zen--add-to-search "k")))
+(define-key zen-nv-mode-map (kbd "l") (lambda () (interactive) (zen--add-to-search "l")))
+(define-key zen-nv-mode-map (kbd "m") (lambda () (interactive) (zen--add-to-search "m")))
+(define-key zen-nv-mode-map (kbd "n") (lambda () (interactive) (zen--add-to-search "n")))
+(define-key zen-nv-mode-map (kbd "o") (lambda () (interactive) (zen--add-to-search "o")))
+(define-key zen-nv-mode-map (kbd "p") (lambda () (interactive) (zen--add-to-search "p")))
+(define-key zen-nv-mode-map (kbd "q") (lambda () (interactive) (zen--add-to-search "q")))
+(define-key zen-nv-mode-map (kbd "r") (lambda () (interactive) (zen--add-to-search "r")))
+(define-key zen-nv-mode-map (kbd "s") (lambda () (interactive) (zen--add-to-search "s")))
+(define-key zen-nv-mode-map (kbd "t") (lambda () (interactive) (zen--add-to-search "t")))
+(define-key zen-nv-mode-map (kbd "u") (lambda () (interactive) (zen--add-to-search "u")))
+(define-key zen-nv-mode-map (kbd "v") (lambda () (interactive) (zen--add-to-search "v")))
+(define-key zen-nv-mode-map (kbd "w") (lambda () (interactive) (zen--add-to-search "w")))
+(define-key zen-nv-mode-map (kbd "x") (lambda () (interactive) (zen--add-to-search "x")))
+(define-key zen-nv-mode-map (kbd "y") (lambda () (interactive) (zen--add-to-search "y")))
+(define-key zen-nv-mode-map (kbd "z") (lambda () (interactive) (zen--add-to-search "z")))
+(define-key zen-nv-mode-map (kbd "0") (lambda () (interactive) (zen--add-to-search "0")))
+(define-key zen-nv-mode-map (kbd "1") (lambda () (interactive) (zen--add-to-search "1")))
+(define-key zen-nv-mode-map (kbd "2") (lambda () (interactive) (zen--add-to-search "2")))
+(define-key zen-nv-mode-map (kbd "3") (lambda () (interactive) (zen--add-to-search "3")))
+(define-key zen-nv-mode-map (kbd "4") (lambda () (interactive) (zen--add-to-search "4")))
+(define-key zen-nv-mode-map (kbd "5") (lambda () (interactive) (zen--add-to-search "5")))
+(define-key zen-nv-mode-map (kbd "6") (lambda () (interactive) (zen--add-to-search "6")))
+(define-key zen-nv-mode-map (kbd "7") (lambda () (interactive) (zen--add-to-search "7")))
+(define-key zen-nv-mode-map (kbd "8") (lambda () (interactive) (zen--add-to-search "8")))
+(define-key zen-nv-mode-map (kbd "9") (lambda () (interactive) (zen--add-to-search "9")))
+(define-key zen-nv-mode-map (kbd "<SPC>") (lambda () (interactive) (zen--add-to-search " ")))
+(define-key zen-nv-mode-map (kbd ".") (lambda () (interactive) (zen--add-to-search ".")))
+(define-key zen-nv-mode-map (kbd ",") (lambda () (interactive) (zen--add-to-search ",")))
+(define-key zen-nv-mode-map (kbd ";") (lambda () (interactive) (zen--add-to-search ";")))
+(define-key zen-nv-mode-map (kbd ":") (lambda () (interactive) (zen--add-to-search ":")))
+(define-key zen-nv-mode-map (kbd "-") (lambda () (interactive) (zen--add-to-search "-")))
+(define-key zen-nv-mode-map (kbd "+") (lambda () (interactive) (zen--add-to-search "+")))
+(define-key zen-nv-mode-map (kbd "=") (lambda () (interactive) (zen--add-to-search "=")))
+(define-key zen-nv-mode-map (kbd "(") (lambda () (interactive) (zen--add-to-search "(")))
+(define-key zen-nv-mode-map (kbd ")") (lambda () (interactive) (zen--add-to-search ")")))
+(define-key zen-nv-mode-map (kbd "/") (lambda () (interactive) (zen--add-to-search "/")))
+(define-key zen-nv-mode-map (kbd "<backspace>") (lambda () (interactive) (zen--remove-last-from-search)))
+
+
+(defun zen-nv ()
+  (interactive)
+  (let* ((name "*Zen NV*")
+         (buff (get-buffer-create name)))
+    (switch-to-buffer buff)
+    (zen-nv-mode)
+    ;; Maybe setq the initial notes so that we don't have to reload every time?
+    ;; Two levels of state? Heavy, light?
+    (setq-local revert-buffer-function (lambda (&rest ignore) (zen--nv-render)))
+    (button-mode)
+    (defstate **state** (:search-string) #'zen--nv-render)
+    (setstate :search-string "")))
+
+
+(defun zen--nv-render ()
+  (let* ((inhibit-read-only t)
+         (notes-map (zen--load-all-notes))
+         (search-string (getstate :search-string))
+         (seen-one nil)
+         (notebook nil)
+         (subnotes nil))
+    (erase-buffer)
+    (insert (format "\n==> %s" search-string))
+    (setq cursor (point))
+    (insert "\n")
+    (dolist (notebook-content notes-map)
+      (setq notebook (car notebook-content))
+      (setq subnotes (zen--filter-notes (cdr notebook-content) search-string))
+      (when subnotes
+        (setq seen-one t)
+        (insert (format "\n%s\n\n" notebook))
+        (dolist (note subnotes)
+          (zen--render-note note))))
+    (goto-char cursor)))
+
+(defun zen--filter-notes (notes str)
+  (seq-filter (lambda (note)
+                (string-match-p (regexp-quote str) (downcase (plist-get note :full-title))))
+              notes))
+
+(defun zen--add-to-search (str)
+  (let* ((search-string (getstate :search-string)))
+    (setstate :search-string (concat search-string str))))
+
+
+(defun zen--remove-last-from-search ()
+  (let* ((search-string (getstate :search-string))
+         (len (length search-string)))
+    (when (> len 0)
+      (setstate :search-string (substring search-string 0 (- len 1))))))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Helper functions
 
 (defvar zen--note-filter
   (rx string-start
@@ -126,11 +304,13 @@
       (or ".txt" ".md")
       string-end))
 
+
 (defun zen--load-notes (notebook)
   (let* ((path (zen--notebook-path notebook))
          (raw-notes (directory-files (directory-file-name path) nil zen--note-filter t))
          (notes (mapcar (zen--process-note notebook) raw-notes)))
     (sort notes (lambda (x y) (string-lessp (plist-get x :sort) (plist-get y :sort))))))
+
 
 (defun zen--process-note (notebook)
   (lambda (raw-note)
@@ -150,44 +330,52 @@
             :class class
             :type type))))
 
+
+(defun zen--load-all-notes ()
+  (let* ((notebooks (zen--load-notebooks))
+         (result nil))
+    (message "Loading notes...")
+    (dolist (notebook notebooks)
+      (push (cons notebook (zen--load-notes notebook)) result))
+    (nreverse result)))
+
 (defun zen--notebook-path (notebook)
-  (concat (file-name-as-directory zen-root-directory) notebook))
+  (zen--concat-path zen-root-directory notebook))
+
 
 (defun zen--note-path (notebook raw-note)
-  (concat (file-name-as-directory zen-root-directory) (file-name-as-directory notebook) raw-note))
+  (zen--concat-path zen-root-directory notebook raw-note))
+
 
 (defun zen--note-class (tag)
-  (cond ((member tag '("PIN")) :pinned)
+  (cond ((member tag zen-pinned-tags) :pinned)
         ((member tag zen-highlighted-tags) :highlighted)
         (t :regular)))
 
-;; Merge with zen--note-title?
+
 (defun zen--split-title-tag (title)
   "Extract tag from TITLE of a note."
   (let* ((case-fold-search nil)
          (tag nil))
-    ;; Search case sensitively.
     (save-match-data
       (setq tag (and (string-match "^\\([A-Z0-9 ]+\\) - " title)
                      (match-string 1 title)))
       (if tag
-          (cons tag (substring title (+ (length tag) 3)))
+          (cons tag (substring title (+ (length tag) 3))) ;; to account for " - "
         (cons nil title)))))
 
 
+(defvar zen--title-rx (list :markdown (rx string-start "# " (group (zero-or-more anychar)) string-end)
+                            :text (rx string-start (group (zero-or-more anychar)) string-end)
+                            :org (rx string-start "* " (group (zero-or-more anychar)) string-end)))
+
 (defun zen--note-title (notebook raw-note)
-  "Get title of a RAW-NOTE (depending on note file type)."
+  "Get title of a RAW-NOTE depending on note file type."
   (let* ((path (zen--note-path notebook raw-note))
          (type (zen--note-type raw-note))
-         (title nil))
-    (pcase type
-      (:markdown
-       (setq title (zen--read-first-matching-line path (rx string-start "# " (group (zero-or-more anychar)) string-end))))
-      (:text
-       (setq title (zen--read-first-matching-line path (rx string-start (group (zero-or-more anychar)) string-end))))
-      (:org
-       (setq title "org")))
+         (title (zen--read-first-matching-line path (plist-get zen--title-rx type))))
     (string-trim (or title (format "{%s}" raw-note)))))
+
 
 (defun zen--note-type (raw-note)
   "Get note file type."
@@ -197,12 +385,14 @@
         ((string-suffix-p ".txt" raw-note) :markdown)
         (t :text)))
 
+
 (defun zen--note-extension (note)
   (let* ((type (zen--note-type (plist-get note :raw))))
     (pcase type
       (:markdown "md")
       (:text "txt")
       (:org "org"))))
+
 
 (defun zen--read-first-matching-line (path regexp)
   "Get first line of a note matching the given regexp."
@@ -233,22 +423,22 @@
         (push name result)))
     (nreverse result)))
 
+
 (defun zen--query-notebook (prompt)
   (completing-read prompt (zen--load-notebooks) nil t))
-
-(defun zen-open-notebook (notebook)
-  (interactive (list (zen--query-notebook "Open notebook: ")))
-  (setstate :notebook notebook))
 
 
 (defun zen--default-title ()
   (format "SCRATCH - %s" (format-time-string zen-time-format)))
 
+
 (defun zen--in-buffer-p ()
   (eq major-mode 'zen-mode))
 
+
 (defun zen--fresh-name ()
   (format "Z-%s-.%s" (zen--random-uuid) zen-default-extension))
+
 
 (defun zen--manual-random-uuid ()
   ;; Code here by Christopher Wellons, 2011-11-18.
@@ -273,6 +463,7 @@
             (substring myStr 17 20)
             (substring myStr 20 32))))
 
+
 (defun zen--random-uuid ()
   "Returns a UUID - calls “uuidgen” on MacOS, Linux, and PowelShell on Microsoft Windows."
   (let* ((uuid
@@ -295,71 +486,19 @@
     zen-home-notebook))
 
 
-(defun zen-create-note (title)
-  "Create a note in current notebook (or home notebook if not in a zen buffer)."
-  (interactive (list (let ((default (zen--default-title)))
-                       (read-string (format "Title (%s): " default) nil nil default))))
-  (let* ((fname (zen--fresh-name))
-         (notebook (zen--defaulted-notebook))
-         (new-file (zen--note-path notebook fname))
-         (new-note (list :path new-file))
-         (buff (get-file-buffer new-file)))
-    ;; TODO: if the file/buffer already exists, don't insert the # Note thing.
-    ;; Also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
-    (if (null buff)
-        (progn
-          (zen--open-note new-note)
-          (newline)
-          ;; This depends on type, no?
-          (insert (format "# %s" title))
-          (newline)
-          (newline))
-      (pop-to-buffer buff))))
-
-
 (defun zen--note-at-point ()
+  "Return the note at point, error out if none."
   (let ((btn (button-at (point))))
     (unless (and btn (button-get btn 'note))
       (error "not over a note button"))
     (button-get btn 'note)))
 
-(defun zen-delete-note ()
-  (interactive)
-  (let* ((note (zen--note-at-point))
-         (prompt nil)
-         (new-path nil))
-    (setq prompt (format "Delete note [%s]? " (plist-get note :title)))
-    (when (yes-or-no-p prompt)
-      ;; Move it to the trash folder.
-      (setq new-path (zen--note-path zen-trash-notebook (plist-get note :raw)))
-      (rename-file (plist-get note :path) new-path)
-      (setstate :refresh t))))
 
-(defun zen-name-note ()
-  "Show the full path of a note."
-  (interactive)
-  (let* ((note (zen--note-at-point)))
-    (message (plist-get note :path))))
-
-(defun zen-move-note ()
-  "Move the note to notebook."
-  (interactive)
-  (let* ((note (zen--note-at-point))
-         (target-notebook nil)
-         (new-path nil))
-    (setq target-notebook (zen--query-notebook "Target notebook: "))
-    (setq new-path (zen--note-path target-notebook (plist-get note :raw)))
-    (rename-file (plist-get note :path) new-path)
-    (setstate :refresh t)))
-
-(defun zen-export-note ()
-  "Export (copy) the note to export folder."
-  (interactive)
-  (let* ((note (zen--note-at-point))
-         (full-title (plist-get note :full-title))
-         (default-name (format "%s.%s" full-title (zen--note-extension note)))
-         (name (read-string (format "Export name [%s]: " default-name) nil nil default-name)))
-    (copy-file (plist-get note :path) (concat (file-name-as-directory zen-export-directory) name))))
+(defun zen--concat-path (&rest names)
+  ;; Recursive, so don't use too deeply...
+  (cond ((null names) "")
+        ((null (cdr names)) (car names))
+        (t (concat (file-name-as-directory (car names)) (apply #'zen--concat-path (cdr names))))))
 
 
 ;;

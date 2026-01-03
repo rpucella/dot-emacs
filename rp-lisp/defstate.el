@@ -37,4 +37,8 @@ Record the RENDER function so that it can be invoked when the state is updated."
         (plist-put (symbol-value **defstate--name**) prop val)))
     (funcall **defstate--render**)))
 
+(defun refstate ()
+  "Refresh by calling the state render function."
+  (funcall **defstate--render**))
+
 (provide 'defstate)
