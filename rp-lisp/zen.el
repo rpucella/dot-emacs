@@ -11,7 +11,7 @@
 (defvar zen-export-directory
   (concat (file-name-as-directory (getenv "HOME")) "Desktop"))
 
-(defvar zen-highlighted-tags '("JOT" "SCRATCH" "SCHEDULE"))
+(defvar zen-highlighted-tags '("JOT" "SCRATCH"))
 
 (defvar zen-note-symbol "≻")  ; Nice choices: * ⊳  ≻  ►
 
@@ -30,10 +30,6 @@
 (define-key zen-mode-map (kbd "c") #'zen-create-note)
 
 
-;; Color buttons - gemini:
-;; can font-lock-mode be used to change the color of the text inside buttons defined using the button.el package?
-;; what if I want to change the color of only _part_ of the text of a button?
-
 (defun zen ()
   (interactive)
   (let* ((name "*Zen*")
@@ -45,8 +41,9 @@
     (button-mode)
     ;; Font lock.
     (setq font-lock-defaults '(zen--highlights t))
-    (defstate **state** (:notebook) #'zen--render)
-    (setstate :notebook zen-home-notebook)))
+    (defstate **state** (:notebook :refresh) #'zen--render)
+    ;; The :refresh thing is a cop out for forcing a refresh in case of a change.
+    (setstate :notebook zen-home-notebook :refresh t)))
 
 ;; Do we have the notion of derived state, where some state properties get
 ;; automatically recomputed when other properties change?
@@ -72,6 +69,13 @@
 
 (define-button-type 'zen--note-button
   'face nil
+  'keymap (let ((map (make-sparse-keymap)))
+            (set-keymap-parent map button-map)
+            (define-key map (kbd "e") #'zen-export-note)
+            (define-key map (kbd "f") #'zen-name-note)
+            (define-key map (kbd "k") #'zen-delete-note)
+            (define-key map (kbd "m") #'zen-move-note)
+            map)
   'action (lambda (btn) (zen--open-note (button-get btn 'note))))
 
 (defun zen--render-notes (notes)
@@ -129,17 +133,18 @@
     (sort notes (lambda (x y) (string-lessp (plist-get x :sort) (plist-get y :sort))))))
 
 (defun zen--process-note (notebook)
-  (lambda (note)
-    (let* ((full-title (or (zen--note-title notebook note) note))
+  (lambda (raw-note)
+    (let* ((full-title (or (zen--note-title notebook raw-note) raw-note))
            (title-tag (zen--split-title-tag full-title))
            (tag (car title-tag))
            (title (cdr title-tag))
-           (path (zen--note-path notebook note))
+           (path (zen--note-path notebook raw-note))
            (class (zen--note-class tag))
-           (type (zen--note-type note)))
-      (list :raw note
+           (type (zen--note-type raw-note)))
+      (list :raw raw-note
             :title title
             :tag tag
+            :full-title full-title
             :sort (downcase full-title)
             :path path
             :class class
@@ -148,8 +153,8 @@
 (defun zen--notebook-path (notebook)
   (concat (file-name-as-directory zen-root-directory) notebook))
 
-(defun zen--note-path (notebook note)
-  (concat (file-name-as-directory zen-root-directory) (file-name-as-directory notebook) note))
+(defun zen--note-path (notebook raw-note)
+  (concat (file-name-as-directory zen-root-directory) (file-name-as-directory notebook) raw-note))
 
 (defun zen--note-class (tag)
   (cond ((member tag '("PIN")) :pinned)
@@ -170,10 +175,10 @@
         (cons nil title)))))
 
 
-(defun zen--note-title (notebook note)
-  "Get title of a NOTE (depending on note file type)."
-  (let* ((path (zen--note-path notebook note))
-         (type (zen--note-type note))
+(defun zen--note-title (notebook raw-note)
+  "Get title of a RAW-NOTE (depending on note file type)."
+  (let* ((path (zen--note-path notebook raw-note))
+         (type (zen--note-type raw-note))
          (title nil))
     (pcase type
       (:markdown
@@ -182,15 +187,22 @@
        (setq title (zen--read-first-matching-line path (rx string-start (group (zero-or-more anychar)) string-end))))
       (:org
        (setq title "org")))
-    (string-trim (or title (format "{%s}" note)))))
+    (string-trim (or title (format "{%s}" raw-note)))))
 
-(defun zen--note-type (note)
+(defun zen--note-type (raw-note)
   "Get note file type."
-  (cond ((string-suffix-p ".md" note) :markdown)
-        ((string-suffix-p ".org" note) :org)
+  (cond ((string-suffix-p ".md" raw-note) :markdown)
+        ((string-suffix-p ".org" raw-note) :org)
         ;; Eventually, this is different...
-        ((string-suffix-p ".txt" note) :markdown)
+        ((string-suffix-p ".txt" raw-note) :markdown)
         (t :text)))
+
+(defun zen--note-extension (note)
+  (let* ((type (zen--note-type (plist-get note :raw))))
+    (pcase type
+      (:markdown "md")
+      (:text "txt")
+      (:org "org"))))
 
 (defun zen--read-first-matching-line (path regexp)
   "Get first line of a note matching the given regexp."
@@ -221,9 +233,11 @@
         (push name result)))
     (nreverse result)))
 
+(defun zen--query-notebook (prompt)
+  (completing-read prompt (zen--load-notebooks) nil t))
 
 (defun zen-open-notebook (notebook)
-  (interactive (list (completing-read "Open notebook: " (zen--load-notebooks) nil t)))
+  (interactive (list (zen--query-notebook "Open notebook: ")))
   (setstate :notebook notebook))
 
 
@@ -274,6 +288,13 @@
     (upcase (replace-regexp-in-string (regexp-quote "-") "" uuid))))
 
 
+(defun zen--defaulted-notebook ()
+  "Get current notebook name if in a Zen buffer, default notebook otherwise."
+  (if (zen--in-buffer-p)
+      (getstate :notebook)
+    zen-home-notebook))
+
+
 (defun zen-create-note (title)
   "Create a note in current notebook (or home notebook if not in a zen buffer)."
   (interactive (list (let ((default (zen--default-title)))
@@ -295,20 +316,62 @@
           (newline))
       (pop-to-buffer buff))))
 
-(defun zen--defaulted-notebook ()
-  "Get current notebook name if in a Zen buffer, default notebook otherwise."
-  (if (zen--in-buffer-p)
-      (getstate :notebook)
-    zen-home-notebook))
+
+(defun zen--note-at-point ()
+  (let ((btn (button-at (point))))
+    (unless (and btn (button-get btn 'note))
+      (error "not over a note button"))
+    (button-get btn 'note)))
+
+(defun zen-delete-note ()
+  (interactive)
+  (let* ((note (zen--note-at-point))
+         (prompt nil)
+         (new-path nil))
+    (setq prompt (format "Delete note [%s]? " (plist-get note :title)))
+    (when (yes-or-no-p prompt)
+      ;; Move it to the trash folder.
+      (setq new-path (zen--note-path zen-trash-notebook (plist-get note :raw)))
+      (rename-file (plist-get note :path) new-path)
+      (setstate :refresh t))))
+
+(defun zen-name-note ()
+  "Show the full path of a note."
+  (interactive)
+  (let* ((note (zen--note-at-point)))
+    (message (plist-get note :path))))
+
+(defun zen-move-note ()
+  "Move the note to notebook."
+  (interactive)
+  (let* ((note (zen--note-at-point))
+         (target-notebook nil)
+         (new-path nil))
+    (setq target-notebook (zen--query-notebook "Target notebook: "))
+    (setq new-path (zen--note-path target-notebook (plist-get note :raw)))
+    (rename-file (plist-get note :path) new-path)
+    (setstate :refresh t)))
+
+(defun zen-export-note ()
+  "Export (copy) the note to export folder."
+  (interactive)
+  (let* ((note (zen--note-at-point))
+         (full-title (plist-get note :full-title))
+         (default-name (format "%s.%s" full-title (zen--note-extension note)))
+         (name (read-string (format "Export name [%s]: " default-name) nil nil default-name)))
+    (copy-file (plist-get note :path) (concat (file-name-as-directory zen-export-directory) name))))
+
 
 ;;
 ;; TODO:
 ;;
-;; 1. coloring
+;; 1. ~~coloring~~
 ;; 2. ~~open notebooks~~
 ;; 3. ~~create note~~
-;; 4. nv search (title)
-;; 5. grep search (body)
-;; 6. other note actions
-;; 7. today note
+;; 4. nv search (title) "/"
+;; 5. grep search (body) "s"
+;; 6. jot note "j"
+;; 7. coalesce jot "J"
+;; 8. open dired
+;; 9. today note
 ;;
