@@ -42,3 +42,25 @@ Record the RENDER function so that it can be invoked when the state is updated."
   (funcall **defstate--render**))
 
 (provide 'defstate)
+
+
+
+;; # is there the concept of an spa in emacs?
+;;
+;; - special mode
+;; - multiple "screens" with different key bindings?
+;; - navigate between the screens - same buffer, different buffers?
+;; - notion of an app state = local prop list
+;; - when a value changes, refresh the view?
+;; - a la React
+;; - the view simply shows info
+;; - changes to the state trigger a refresh
+;; - refresh simply redraws the view
+;;
+;; `(def-single-page-app name (var refresh) ...)`
+;;
+;; - app = state -> set of widgets
+;; - keybinding + widget action -> update the state
+;; - `name--*state*`
+;; - need to initialize the state
+;; - what is the initial refresh?
