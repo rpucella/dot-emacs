@@ -25,11 +25,12 @@
 
 (define-key zen-mode-map (kbd "o") #'zen-open-notebook)
 (define-key zen-mode-map (kbd "c") #'zen-create-note)
+(define-key zen-mode-map (kbd "s") #'zen-grep)
 (define-key zen-mode-map (kbd "/") #'zen-nv)
 
 (defun zen ()
   (interactive)
-  (let* ((name "*Zen*")
+  (let* ((name "Zen Notes")
          (buff (get-buffer-create name)))
     (switch-to-buffer buff)
     (zen-mode)
@@ -180,6 +181,7 @@
   (interactive (list (zen--query-notebook "Open notebook: ")))
   (setstate :notebook notebook))
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Zen NV Search mode
@@ -188,59 +190,18 @@
   special-mode "Zen NV"
   "Major mode for searching Zen note titles.")
 
-(define-key zen-nv-mode-map (kbd "a") (lambda () (interactive) (zen--add-to-search "a")))
-(define-key zen-nv-mode-map (kbd "b") (lambda () (interactive) (zen--add-to-search "b")))
-(define-key zen-nv-mode-map (kbd "c") (lambda () (interactive) (zen--add-to-search "c")))
-(define-key zen-nv-mode-map (kbd "d") (lambda () (interactive) (zen--add-to-search "d")))
-(define-key zen-nv-mode-map (kbd "e") (lambda () (interactive) (zen--add-to-search "e")))
-(define-key zen-nv-mode-map (kbd "f") (lambda () (interactive) (zen--add-to-search "f")))
-(define-key zen-nv-mode-map (kbd "g") (lambda () (interactive) (zen--add-to-search "g")))
-(define-key zen-nv-mode-map (kbd "h") (lambda () (interactive) (zen--add-to-search "h")))
-(define-key zen-nv-mode-map (kbd "i") (lambda () (interactive) (zen--add-to-search "i")))
-(define-key zen-nv-mode-map (kbd "j") (lambda () (interactive) (zen--add-to-search "j")))
-(define-key zen-nv-mode-map (kbd "k") (lambda () (interactive) (zen--add-to-search "k")))
-(define-key zen-nv-mode-map (kbd "l") (lambda () (interactive) (zen--add-to-search "l")))
-(define-key zen-nv-mode-map (kbd "m") (lambda () (interactive) (zen--add-to-search "m")))
-(define-key zen-nv-mode-map (kbd "n") (lambda () (interactive) (zen--add-to-search "n")))
-(define-key zen-nv-mode-map (kbd "o") (lambda () (interactive) (zen--add-to-search "o")))
-(define-key zen-nv-mode-map (kbd "p") (lambda () (interactive) (zen--add-to-search "p")))
-(define-key zen-nv-mode-map (kbd "q") (lambda () (interactive) (zen--add-to-search "q")))
-(define-key zen-nv-mode-map (kbd "r") (lambda () (interactive) (zen--add-to-search "r")))
-(define-key zen-nv-mode-map (kbd "s") (lambda () (interactive) (zen--add-to-search "s")))
-(define-key zen-nv-mode-map (kbd "t") (lambda () (interactive) (zen--add-to-search "t")))
-(define-key zen-nv-mode-map (kbd "u") (lambda () (interactive) (zen--add-to-search "u")))
-(define-key zen-nv-mode-map (kbd "v") (lambda () (interactive) (zen--add-to-search "v")))
-(define-key zen-nv-mode-map (kbd "w") (lambda () (interactive) (zen--add-to-search "w")))
-(define-key zen-nv-mode-map (kbd "x") (lambda () (interactive) (zen--add-to-search "x")))
-(define-key zen-nv-mode-map (kbd "y") (lambda () (interactive) (zen--add-to-search "y")))
-(define-key zen-nv-mode-map (kbd "z") (lambda () (interactive) (zen--add-to-search "z")))
-(define-key zen-nv-mode-map (kbd "0") (lambda () (interactive) (zen--add-to-search "0")))
-(define-key zen-nv-mode-map (kbd "1") (lambda () (interactive) (zen--add-to-search "1")))
-(define-key zen-nv-mode-map (kbd "2") (lambda () (interactive) (zen--add-to-search "2")))
-(define-key zen-nv-mode-map (kbd "3") (lambda () (interactive) (zen--add-to-search "3")))
-(define-key zen-nv-mode-map (kbd "4") (lambda () (interactive) (zen--add-to-search "4")))
-(define-key zen-nv-mode-map (kbd "5") (lambda () (interactive) (zen--add-to-search "5")))
-(define-key zen-nv-mode-map (kbd "6") (lambda () (interactive) (zen--add-to-search "6")))
-(define-key zen-nv-mode-map (kbd "7") (lambda () (interactive) (zen--add-to-search "7")))
-(define-key zen-nv-mode-map (kbd "8") (lambda () (interactive) (zen--add-to-search "8")))
-(define-key zen-nv-mode-map (kbd "9") (lambda () (interactive) (zen--add-to-search "9")))
-(define-key zen-nv-mode-map (kbd "<SPC>") (lambda () (interactive) (zen--add-to-search " ")))
-(define-key zen-nv-mode-map (kbd ".") (lambda () (interactive) (zen--add-to-search ".")))
-(define-key zen-nv-mode-map (kbd ",") (lambda () (interactive) (zen--add-to-search ",")))
-(define-key zen-nv-mode-map (kbd ";") (lambda () (interactive) (zen--add-to-search ";")))
-(define-key zen-nv-mode-map (kbd ":") (lambda () (interactive) (zen--add-to-search ":")))
-(define-key zen-nv-mode-map (kbd "-") (lambda () (interactive) (zen--add-to-search "-")))
-(define-key zen-nv-mode-map (kbd "+") (lambda () (interactive) (zen--add-to-search "+")))
-(define-key zen-nv-mode-map (kbd "=") (lambda () (interactive) (zen--add-to-search "=")))
-(define-key zen-nv-mode-map (kbd "(") (lambda () (interactive) (zen--add-to-search "(")))
-(define-key zen-nv-mode-map (kbd ")") (lambda () (interactive) (zen--add-to-search ")")))
-(define-key zen-nv-mode-map (kbd "/") (lambda () (interactive) (zen--add-to-search "/")))
-(define-key zen-nv-mode-map (kbd "<backspace>") (lambda () (interactive) (zen--remove-last-from-search)))
+(mapcar (lambda (c)
+          (let* ((s (char-to-string c))
+                 (f (lambda () (interactive) (zen--add-nv-search s))))
+            (define-key zen-nv-mode-map (kbd s) f)))
+        "abcdefghijklmnopqrstuvwxyz0123456789.,;:-+=()/")
+(define-key zen-nv-mode-map (kbd "<SPC>") (lambda () (interactive) (zen--add-nv-search " ")))
+(define-key zen-nv-mode-map (kbd "<backspace>") (lambda () (interactive) (zen--remove-nv-search)))
 
 
 (defun zen-nv ()
   (interactive)
-  (let* ((name "*Zen NV*")
+  (let* ((name "Zen NV")
          (buff (get-buffer-create name)))
     (switch-to-buffer buff)
     (zen-nv-mode)
@@ -260,7 +221,7 @@
          (notebook nil)
          (subnotes nil))
     (erase-buffer)
-    (insert (format "\n==> %s" search-string))
+    (insert (format "\nNV Search => %s" search-string))
     (setq cursor (point))
     (insert "\n")
     (dolist (notebook-content notes-map)
@@ -273,23 +234,101 @@
           (zen--render-note note))))
     (goto-char cursor)))
 
+
 (defun zen--filter-notes (notes str)
   (seq-filter (lambda (note)
                 (string-match-p (regexp-quote str) (downcase (plist-get note :full-title))))
               notes))
 
-(defun zen--add-to-search (str)
+
+(defun zen--add-nv-search (str)
   (let* ((search-string (getstate :search-string)))
     (setstate :search-string (concat search-string str))))
 
 
-(defun zen--remove-last-from-search ()
+(defun zen--remove-nv-search ()
   (let* ((search-string (getstate :search-string))
          (len (length search-string)))
     (when (> len 0)
       (setstate :search-string (substring search-string 0 (- len 1))))))
 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Zen Grep Search mode
+
+(define-derived-mode zen-grep-mode
+  special-mode "Zen Grep"
+  "Major mode for searching Zen notes via grep.")
+
+
+(defun zen-grep (search-string)
+  (interactive (list (read-string "Search string: ")))
+  (let* ((name (format "Zen Grep: %s" search-string))
+         (buff (get-buffer-create name)))
+    (switch-to-buffer buff)
+    (zen-grep-mode)
+    ;; Maybe setq the initial notes so that we don't have to reload every time?
+    ;; Two levels of state? Heavy, light?
+    (setq-local revert-buffer-function (lambda (&rest ignore) (zen--grep-render)))
+    (button-mode)
+    (defstate **state** (:search-string) #'zen--grep-render)
+    (setstate :search-string search-string)))
+
+
+(defun zen--grep-render ()
+  (let* ((inhibit-read-only t)
+         (notes-map (zen--load-all-notes))
+         (search-string (getstate :search-string))
+         (seen-one nil)
+         (notebook nil)
+         (subnotes nil)
+         (start-color nil)
+         (end-color nil)
+         (buffer (current-buffer)))
+    (erase-buffer)
+    (insert (format "\nSearch: %s\n" search-string))
+    (dolist (notebook-content notes-map)
+      (setq notebook (car notebook-content))
+      (setq subnotes-with-matches (zen--find-grep-matches search-string notebook (cdr notebook-content)))
+      (when subnotes-with-matches
+        (insert (format "\n%s\n\n" notebook))
+        (dolist (note-with-matches subnotes-with-matches)
+          (setq seen-one t)
+          (zen--render-note (car note-with-matches))
+          (dolist (match (cdr note-with-matches))
+            (setq start-color (point))
+            (insert (format "   %s" match))
+            (add-face-text-property start-color (point) font-lock-comment-face)
+            (newline)))))
+    (goto-char (point-min))
+    (when seen-one (forward-button 1))))
+
+
+(defun zen--find-grep-matches (search-string notebook notes)
+  (let* ((result nil)
+         (matches nil)
+         (line nil))
+    (with-temp-buffer
+      (save-match-data
+        ;; Note safe if we have special characters!
+        (shell-command (format "grep -i %s %s/Z-*.{txt,md,org}(N)"
+                               search-string
+                               (zen--notebook-path notebook))
+                       (current-buffer))
+        (dolist (note notes)
+          (goto-char (point-min))
+          (setq matches nil)
+          (while (not (eobp))
+            (setq line (setq line (string-trim (buffer-substring-no-properties (line-beginning-position) (line-end-position)))))
+            (when (string-prefix-p (plist-get note :path) line)
+              (let ((sz (+ (length (plist-get note :path)) 1)))
+                (push (substring line sz (min (length line) (+ sz (window-body-width) -4))) matches)))
+            (forward-line 1))
+          (when matches
+            (push (cons note (nreverse matches)) result)))
+        (nreverse result)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -337,14 +376,15 @@
     (message "Loading notes...")
     (dolist (notebook notebooks)
       (push (cons notebook (zen--load-notes notebook)) result))
+    (message nil)
     (nreverse result)))
 
 (defun zen--notebook-path (notebook)
-  (zen--concat-path zen-root-directory notebook))
+  (expand-file-name (zen--concat-path zen-root-directory notebook)))
 
 
 (defun zen--note-path (notebook raw-note)
-  (zen--concat-path zen-root-directory notebook raw-note))
+  (expand-file-name (zen--concat-path zen-root-directory notebook raw-note)))
 
 
 (defun zen--note-class (tag)
@@ -365,9 +405,9 @@
         (cons nil title)))))
 
 
-(defvar zen--title-rx (list :markdown (rx string-start "# " (group (zero-or-more anychar)) string-end)
-                            :text (rx string-start (group (zero-or-more anychar)) string-end)
-                            :org (rx string-start "* " (group (zero-or-more anychar)) string-end)))
+(defvar zen--title-rx (list :markdown (rx string-start "# " (group (zero-or-more not-newline)) string-end)
+                            :text (rx string-start (group (zero-or-more not-newline)) string-end)
+                            :org (rx string-start "* " (group (zero-or-more not-newline)) string-end)))
 
 (defun zen--note-title (notebook raw-note)
   "Get title of a RAW-NOTE depending on note file type."
