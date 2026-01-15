@@ -30,7 +30,7 @@
 
 (defun zen ()
   (interactive)
-  (let* ((name "Zen Notes")
+  (let* ((name "*Zen*")
          (buff (get-buffer-create name)))
     (switch-to-buffer buff)
     (zen-mode)
@@ -197,11 +197,11 @@
         "abcdefghijklmnopqrstuvwxyz0123456789.,;:-+=()/")
 (define-key zen-nv-mode-map (kbd "<SPC>") (lambda () (interactive) (zen--add-nv-search " ")))
 (define-key zen-nv-mode-map (kbd "<backspace>") (lambda () (interactive) (zen--remove-nv-search)))
-
+(define-key zen-nv-mode-map (kbd "C-g") #'zen-nv-kill) ;; Override usual quit
 
 (defun zen-nv ()
   (interactive)
-  (let* ((name "Zen NV")
+  (let* ((name "*Zen NV*")
          (buff (get-buffer-create name)))
     (switch-to-buffer buff)
     (zen-nv-mode)
@@ -252,6 +252,10 @@
     (when (> len 0)
       (setstate :search-string (substring search-string 0 (- len 1))))))
 
+(defun zen-nv-kill ()
+  "Kill current buffer without asking anything"
+  (interactive)
+  (kill-buffer (current-buffer)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -265,7 +269,7 @@
 
 (defun zen-grep (search-string)
   (interactive (list (read-string "Search string: ")))
-  (let* ((name (format "Zen Grep: %s" search-string))
+  (let* ((name (format "*Zen Grep: %s*" search-string))
          (buff (get-buffer-create name)))
     (switch-to-buffer buff)
     (zen-grep-mode)
