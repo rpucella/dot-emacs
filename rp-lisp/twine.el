@@ -27,6 +27,32 @@
 ;;     edit game (f)ile
 ;; - use a transient menu instead of this fake one?
 
+;;
+;; Setup:
+;;
+;; Game defined in {name}.twine:
+;;
+;;   (
+;;     :title "title"
+;;     :author "author"
+;;     :scenes "path to scenes directory"
+;;     :init <exp>
+;;   )
+;;
+;; Passages if a list of blocks:
+;;
+;;   "paragraph"
+;;   (text "text")
+;;   (option "target" "fmt" <exp> ...)
+;;   (title "text")
+;;   (header "format" <exp> ...)
+;;   (jump "target")
+;;   (eval <exp> ...)
+;;   (when <exp> <block> ...)
+;;
+;; An <exp> can use (get 'sym) and (put 'sym <exp>) to access the state
+
+
 (require 'widget)
 
 ;; cf: deft-mode
@@ -87,6 +113,8 @@
      (:state nil))
     (twine--render)))
 
+;; sample game definition:
+;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
