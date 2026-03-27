@@ -1,13 +1,10 @@
 ;;; zen.el --- Note-taking environment     -*- lexical-binding: t -*-
 
 
-
 ;; Customization variables
 
 (defvar zen-root-directory "~/.notes")
 (defvar zen-export-directory "~/Desktop")
-(defvar zen-pinned-tags '("PIN"))
-(defvar zen-highlighted-tags '("JOT" "SCRATCH"))
 (defvar zen-note-symbol "≻")  ; Nice choices: * ⊳  ≻  ►
 (defvar zen-max-jot-title 60)
 (defvar zen-home-notebook "HOME")
@@ -15,6 +12,8 @@
 (defvar zen-trash-notebook "_trash") ; Trash notebook.
 (defvar zen-time-format "%y/%m/%d %A")
 (defvar zen-today-note-title "TODAY")
+
+(defvar zen-classes '("pin" "jot" "now"))
 
 
 ;; Zen mode
@@ -49,13 +48,14 @@
          (notebook (getstate :notebook))
          (notes (zen--load-notes notebook))
          (pinned-notes (seq-filter (lambda (note) (eq (plist-get note :class) :pinned)) notes))
+         (jotted-notes (seq-filter (lambda (note) (eq (plist-get note :class) :jotted)) notes))
          (highlighted-notes (seq-filter (lambda (note) (eq (plist-get note :class) :highlighted)) notes))
          (regular-notes (seq-filter (lambda (note) (eq (plist-get note :class) :regular)) notes)))
   (erase-buffer)
   (setq-local mode-line-buffer-identification
               (append zen--default-mode-line-buffer-identification (list (format "[%s]" notebook))))
   (insert (format "\nNotebook: %s\n" notebook))
-  (dolist (sub-notes (list pinned-notes highlighted-notes regular-notes))
+  (dolist (sub-notes (list pinned-notes jotted-notes highlighted-notes regular-notes))
     (when sub-notes
       (setq seen-one t)
       (insert "\n")
@@ -73,7 +73,7 @@
     (insert (format "%s  " zen-note-symbol))
     (setq start-tag (point))
     (setq end-tag (point))
-    (when (and (plist-get note :tag) (not (member (plist-get note :tag) zen-pinned-tags)))
+    (when (plist-get note :tag)
       (insert (plist-get note :tag))
       (setq end-tag (point))
       (insert " - "))
@@ -359,10 +359,11 @@
   (lambda (raw-note)
     (let* ((full-title (or (zen--note-title notebook raw-note) raw-note))
            (title-tag (zen--split-title-tag full-title))
-           (tag (car title-tag))
-           (title (cdr title-tag))
+           (class (car title-tag))
+           (tag (cadr title-tag))
+           (title (caddr title-tag))
            (path (zen--note-path notebook raw-note))
-           (class (zen--note-class tag))
+           (class (zen--note-class class))
            (type (zen--note-type raw-note)))
       (list :raw raw-note
             :title title
@@ -391,22 +392,31 @@
   (expand-file-name (zen--concat-path zen-root-directory notebook raw-note)))
 
 
-(defun zen--note-class (tag)
-  (cond ((member tag zen-pinned-tags) :pinned)
-        ((member tag zen-highlighted-tags) :highlighted)
+
+(defun zen--note-class (class)
+  ;; TODO: fix this so that we have a sequence of classes specified in zen-classes,
+  ;; and just show the buckets in order instead of pre-defining them.
+  (cond ((string= class (car zen-classes)) :pinned)          ;; pin:
+        ((string= class (cadr zen-classes)) :jotted)         ;; jot:
+        ((string= class (caddr zen-classes)) :highlighted)   ;; now:
         (t :regular)))
 
 
 (defun zen--split-title-tag (title)
-  "Extract tag from TITLE of a note."
+  "Extract class and tag from TITLE of a note."
   (let* ((case-fold-search nil)
-         (tag nil))
+         (tag nil)
+         (class nil))
     (save-match-data
+      (setq class (and (string-match "^\\([A-Za-z]+\\): " title)
+                       (match-string 1 title)))
+      (when (and class (member class zen-classes ))
+        (setq title (substring title (+ (length class) 2))))
       (setq tag (and (string-match "^\\([A-Z0-9 ]+\\) - " title)
                      (match-string 1 title)))
-      (if tag
-          (cons tag (substring title (+ (length tag) 3))) ;; to account for " - "
-        (cons nil title)))))
+      (when tag
+        (setq title (substring title (+ (length tag) 3))))
+      (list class tag title))))
 
 
 (defvar zen--title-rx (list :markdown (rx string-start "# " (group (zero-or-more not-newline)) string-end)
