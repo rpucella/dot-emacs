@@ -1,22 +1,26 @@
 
 ;; use M-x package-install-selected-packages when installing on a new system
 
+
+(require 'package)
+(setq package-archives
+        '(("GNU ELPA"     . "https://elpa.gnu.org/packages/")
+          ("NonGNU ELPA" . "https://elpa.nongnu.org/nongnu/")
+          ("MELPA Stable" . "https://stable.melpa.org/packages/")
+;;          ("MELPA"        . "https://melpa.org/packages/")
+          ))
+
+(package-initialize)
+
+(unless package-archive-contents
+  (package-refresh-contents))
+
+(unless (package-installed-p 'use-package)
+  (package-install 'use-package))
 (require 'use-package)
 
 
-(use-package package
-  :config
-  (setq package-archives
-        '(("GNU ELPA"     . "https://elpa.gnu.org/packages/")
-          ("MELPA Stable" . "https://stable.melpa.org/packages/")
-          ("MELPA"        . "https://melpa.org/packages/"))
-        package-archive-priorities
-        '(("MELPA Stable" . 10)
-          ("GNU ELPA"     . 5)
-          ("MELPA"        . 1)))
-  ;; Added by Package.el. Must be before any package configuration.
-  (package-initialize))
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (use-package display-line-numbers
   :config
@@ -39,10 +43,47 @@
 (use-package ws-butler
   ;; Remove trailing whitespace on lines that have been changed.
   ;; Cf: https://github.com/lewang/ws-butler
+  :ensure t
+  :defer t
   :config
   (add-hook 'prog-mode-hook #'ws-butler-mode))
 
 (use-package olivetti)
+
+;; Cannot put this in markdown-mode-hook, since needs to be set before
+;; mode starts.
+(use-package markdown-mode
+  :config
+  (setq-default markdown-hide-markup t)
+  ;; Fix markdown mode hrs to shave off some width to allow for line numbers.
+  ;; Basically, wrap a dynamic letf around `markdown-fontify-hrs` which rebinds
+  ;; `window-body-width` to give you back the width of the window minus something.
+  ;; Cf:
+  ;;   https://www.reddit.com/r/emacs/comments/bjgajb/what_is_the_preferred_way_to_dynamically_add_and/
+  (defvar markdown-width-adjustment 50)
+  (advice-add 'markdown-fontify-hrs :around
+              (lambda (originalf last)
+                (let ((curr-width (window-body-width)))
+
+                  (cl-letf (((symbol-function 'window-body-width)
+                             (lambda () (/ curr-width 2))))
+                    (funcall originalf last))))))
+
+(use-package go-mode
+  :ensure t
+  :mode "\\.go\\'"
+  :config
+  (add-hook 'go-mode-hook
+            (lambda ()
+              (setq tab-width 4))))
+
+
+(use-package paredit
+  :ensure t
+  :commands paredit-mode
+  :hook ((emacs-lisp-mode lisp-interaction-mode lisp-mode scheme-mode) . paredit-mode))
+
+
 
 ;; Identify machines + define defaults.
 
@@ -63,12 +104,17 @@
 ;; To allow loading of custom themes via load-theme
 (add-to-list 'custom-theme-load-path (concat-emacs-folder "rp-init/"))
 
+;; Load lisp code in site-lisp/ directory.
+;; Switch to .elc?
+(when (file-directory-p (concat-emacs-folder "site-lisp"))
+  (mapc 'load-library (file-expand-wildcards (concat-emacs-folder "site-lisp" "*.el"))))
+
+
 (load (concat-emacs-folder "rp-init" "commands.el") nil)
 
 ;; Load lisp code in rp-lisp/ directory.
 ;; Switch to .elc?
 (when (file-directory-p (concat-emacs-folder "rp-lisp"))
-  (message "I'm here!")
   (mapc 'load-library (file-expand-wildcards (concat-emacs-folder "rp-lisp" "*.el"))))
 
 
@@ -185,31 +231,6 @@
 ;; shells are login shells
 (setq explicit-bash-args '("--noediting" "-i" "-l"))
 (setq explicit-zsh-args '("-l"))
-
-;; Cannot put this in markdown-mode-hook, since needs to be set before
-;; mode starts.
-(use-package markdown-mode
-  :config
-  (setq-default markdown-hide-markup t)
-  ;; Fix markdown mode hrs to shave off some width to allow for line numbers.
-  ;; Basically, wrap a dynamic letf around `markdown-fontify-hrs` which rebinds
-  ;; `window-body-width` to give you back the width of the window minus something.
-  ;; Cf:
-  ;;   https://www.reddit.com/r/emacs/comments/bjgajb/what_is_the_preferred_way_to_dynamically_add_and/
-  (defvar markdown-width-adjustment 50)
-  (advice-add 'markdown-fontify-hrs :around
-              (lambda (originalf last)
-                (let ((curr-width (window-body-width)))
-
-                  (cl-letf (((symbol-function 'window-body-width)
-                             (lambda () (/ curr-width 2))))
-                    (funcall originalf last))))))
-
-(use-package go-mode
-  :config
-  (add-hook 'go-mode-hook
-            (lambda ()
-              (setq tab-width 4))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
