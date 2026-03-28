@@ -11,9 +11,12 @@
 (defvar zen-default-extension "md") ; Default extension for new notes.
 (defvar zen-trash-notebook "_trash") ; Trash notebook.
 (defvar zen-time-format "%y/%m/%d %A")
-(defvar zen-today-note-title "TODAY")
-
 (defvar zen-classes '("pin" "jot" "now"))
+
+;; Path is a list of "bookmarks" of the form (name-symbol . note-path).
+;; you can open a bookmark by binding a key to a call to zen-open-bookmark
+;; and passing the bookmark name.
+(defvar zen-bookmarks nil)
 
 
 ;; Zen mode
@@ -26,6 +29,7 @@
 (define-key zen-mode-map (kbd "c") #'zen-create-note)
 (define-key zen-mode-map (kbd "s") #'zen-grep)
 (define-key zen-mode-map (kbd "/") #'zen-nv)
+(define-key zen-mode-map (kbd "b") #'zen-open-bookmark)
 
 (defun zen ()
   (interactive)
@@ -132,6 +136,31 @@
           (newline)
           (newline))
       (pop-to-buffer buff))))
+
+
+(defun zen-open-bookmark (bookmark-sym to-bottom)
+  "Open a bookmarked note and navigate to the bottom if to-bottom is t."
+  (interactive (list (zen--query-bookmark "Bookmark: ") nil))
+  (let* ((path (alist-get bookmark-sym zen-bookmarks))
+         (buff nil))
+    (when (and path (file-exists-p path))
+      (setf buff (find-file-noselect path))
+      (pop-to-buffer buff)
+      ;; Rely on extension/emacs to get the mode right for now.
+      ;; TODO: put :type in the bookmark definition?
+      (when (fboundp 'wc-mode) (wc-mode))
+      (when (fboundp 'auto-fill-mode) (auto-fill-mode))
+      ;; Add local hook to possibly rename after saving.
+      ;; (add-hook 'after-save-hook 'zen--rename-buffer-file-if-needed nil t)
+      (when to-bottom
+        (goto-char (point-max))))
+    ))
+
+
+(defun zen--query-bookmark (prompt)
+  (let* ((bookmarks (mapcar #'car zen-bookmarks)))
+    ;; Return a symbol.
+    (intern (completing-read prompt bookmarks nil t))))
 
 
 (defun zen-delete-note ()
