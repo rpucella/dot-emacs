@@ -247,7 +247,7 @@
 (global-set-key (kbd "C-c S") 'zen-grep)
 (global-set-key (kbd "C-c c") 'zen-create-note)
 ;; to transfer to Zen
-(global-set-key (kbd "C-c j") 'zweirn-jot-note)
+(global-set-key (kbd "C-c j") 'zen-jot-note)
 (global-set-key (kbd "C-c C") 'rp/cheat-sheet)
 (global-set-key (kbd "C-c s") 'shell)
 (global-set-key (kbd "C-c l") 'imenu-list)

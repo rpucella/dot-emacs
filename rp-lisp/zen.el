@@ -27,9 +27,13 @@
 
 (define-key zen-mode-map (kbd "o") #'zen-open-notebook)
 (define-key zen-mode-map (kbd "c") #'zen-create-note)
+(define-key zen-mode-map (kbd "j") #'zen-jot-note)
+(define-key zen-mode-map (kbd "J") #'zen-coalesce-jots)
 (define-key zen-mode-map (kbd "s") #'zen-grep)
 (define-key zen-mode-map (kbd "/") #'zen-nv)
 (define-key zen-mode-map (kbd "b") #'zen-open-bookmark)
+(define-key zen-mode-map (kbd "d") #'zen-open-dired)
+
 
 (defun zen ()
   (interactive)
@@ -138,6 +142,62 @@
       (pop-to-buffer buff))))
 
 
+(defun zen-jot-note ()
+  "Create a jot note in the home notebook taking initial text from minibuffer."
+  (interactive)
+  (let* ((fname (zen--fresh-name))
+         (notebook (zen--defaulted-notebook))
+         (new-file (zen--note-path notebook fname))
+         (content (read-string "Jot note: "))
+         (title (substring content 0 (min zweirn-max-jot-title (length content))))
+         (buff (get-file-buffer new-file)))
+    ;; See https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect ?
+    (if (null buff)
+        (with-current-buffer (find-file-noselect new-file)
+          (newline)
+          ;; This depends on type, no?
+          (insert (format "# jot: %s" title))
+          (newline)
+          (newline)
+          (insert (zweirn--date-tag))
+          (newline)
+          (newline)
+          (insert content)
+          (newline)
+          (save-buffer)
+          (kill-buffer))
+      (pop-to-buffer buff))))
+
+
+(defun zen-coalesce-jots ()
+  "If there are any jotted notes, coalesce them all into a new note and trash originals."
+  (interactive)
+  (let* ((notebook (getstate :notebook))
+         (notes (zen--load-notes notebook))
+         (jotted-notes (seq-filter (lambda (note) (eq (plist-get note :class) :jotted)) notes))
+         (fname (zen--fresh-name))
+         (notebook (zen--defaulted-notebook))
+         (new-file (zen--note-path notebook fname)))
+    (when (and (not (null jotted-notes))
+               (null (get-file-buffer new-file)))
+      ;; Only bother if we have jotted notes and the created buffer is not a clash.
+      (with-current-buffer (find-file-noselect new-file)
+        (insert (format "\n# %s\n\n" (zen--default-title)))
+        (dolist (note jotted-notes)
+          (insert-file (plist-get note :path))
+          ;; What follows depends on the EXACT format of what we put in a jot note!
+          ;; Get rid of everything up to the newline before the line with the actual content.
+          (kill-line)
+          ;; Turn the title into a 2nd degree title preceded by an hrule.
+          (insert "***\n\n#")
+          (goto-char (point-max))
+          (newline)
+          (zen--trash-note note))
+        (save-buffer)
+        (kill-buffer))
+      (refstate))))
+
+
 (defun zen-open-bookmark (bookmark-sym to-bottom)
   "Open a bookmarked note and navigate to the bottom if to-bottom is t."
   (interactive (list (zen--query-bookmark "Bookmark: ") nil))
@@ -171,10 +231,14 @@
          (new-path nil))
     (setq prompt (format "Delete note [%s]? " (plist-get note :title)))
     (when (yes-or-no-p prompt)
-      ;; Move it to the trash folder.
-      (setq new-path (zen--note-path zen-trash-notebook (plist-get note :raw)))
-      (rename-file (plist-get note :path) new-path)
+      (zen--trash-note note)
       (refstate))))
+
+
+(defun zen--trash-note (note)
+  ;; Move it to the trash folder.
+  (setq new-path (zen--note-path zen-trash-notebook (plist-get note :raw)))
+  (rename-file (plist-get note :path) new-path))
 
 
 (defun zen-name-note ()
@@ -584,16 +648,8 @@
         (t (concat (file-name-as-directory (car names)) (apply #'zen--concat-path (cdr names))))))
 
 
-;;
-;; TODO:
-;;
-;; 1. ~~coloring~~
-;; 2. ~~open notebooks~~
-;; 3. ~~create note~~
-;; 4. nv search (title) "/"
-;; 5. grep search (body) "s"
-;; 6. jot note "j"
-;; 7. coalesce jot "J"
-;; 8. open dired
-;; 9. today note
-;;
+(defun zen-open-dired ()
+  "Open dired in the current notebook."
+  (interactive)
+  (dired (zen--notebook-path (getstate :notebook))))
+
