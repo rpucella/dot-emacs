@@ -1,4 +1,6 @@
 ;;; zen.el --- Note-taking environment     -*- lexical-binding: t -*-
+;;;
+;;; This replaces the older Zweirn system.
 
 
 ;; Customization variables
