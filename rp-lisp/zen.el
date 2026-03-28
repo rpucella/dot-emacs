@@ -129,19 +129,14 @@
   (let* ((fname (zen--fresh-name))
          (notebook (zen--defaulted-notebook))
          (new-file (zen--note-path notebook fname))
-         (new-note (list :path new-file))
-         (buff (get-file-buffer new-file)))
-    ;; TODO: if the file/buffer already exists, don't insert the # Note thing.
+         (new-note (list :path new-file)))
     ;; Also, see https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect
-    (if (null buff)
-        (progn
-          (zen-open-note new-note)
-          (newline)
-          ;; This depends on type, no?
-          (insert (format "# %s" title))
-          (newline)
-          (newline))
-      (pop-to-buffer buff))))
+    (zen-open-note new-note)
+    (newline)
+    ;; This depends on type, no?
+    (insert (format "# %s" title))
+    (newline)
+    (newline)))
 
 
 (defun zen-jot-note ()
@@ -151,24 +146,23 @@
          (notebook (zen--defaulted-notebook))
          (new-file (zen--note-path notebook fname))
          (content (read-string "Jot note: "))
-         (title (substring content 0 (min zweirn-max-jot-title (length content))))
-         (buff (get-file-buffer new-file)))
+         (title (substring content 0 (min zen-max-jot-title (length content)))))
     ;; See https://emacs.stackexchange.com/questions/2868/whats-wrong-with-find-file-noselect ?
-    (if (null buff)
-        (with-current-buffer (find-file-noselect new-file)
-          (newline)
-          ;; This depends on type, no?
-          (insert (format "# jot: %s" title))
-          (newline)
-          (newline)
-          (insert (zweirn--date-tag))
-          (newline)
-          (newline)
-          (insert content)
-          (newline)
-          (save-buffer)
-          (kill-buffer))
-      (pop-to-buffer buff))))
+    (with-current-buffer (find-file-noselect new-file)
+      (newline)
+      ;; This depends on type, no?
+      (insert (format "# jot: %s" title))
+      (newline)
+      (newline)
+      (insert (format-time-string zen-time-format))
+      (newline)
+      (newline)
+      (insert content)
+      (newline)
+      (save-buffer)
+      (kill-buffer))
+    (when (zen--in-buffer-p)
+      (refstate))))
 
 
 (defun zen-coalesce-jots ()
